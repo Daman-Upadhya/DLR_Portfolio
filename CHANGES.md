@@ -358,6 +358,29 @@ not in it, so they count as missed. A fresh export, or the live feed, corrects i
   credential scan rejects; it now stores the short ones. A project with no sample file used
   to borrow P1's; it is now "unavailable".
 
+### 3.7 Live on GitHub; sample data removed, 6 Oct
+
+PAR14 and MRS05 were generated with `new-project`. Their first refreshes, the portfolio
+refresh and the Pages deploy all ran green, and the published site was checked:
+
+| Project | State | Last week PPC (W40) | 6-week rolling PPC | Open constraints | Activities | Trades |
+|---|---|---|---|---|---|---|
+| MRS05 Production Control | fresh, live | 48.9% | 55.5% | 11 | 2,986 | 59 |
+| PAR14 Production Control | fresh, live | 66.7% | 81.1% | 28 | 1,538 | 7 |
+
+No published page contains a token, the API host or a project GUID. The landing page links
+both projects, and both dashboards render.
+
+The sample projects and their data were then removed: `P1/`, `P2/`, `sample/`, the four
+`Sample …json` exports at the root and the two large raw exports that were never committed.
+With them gone:
+
+- `selftest` runs on the hand-checked synthetic case only (64 checks), including the
+  reporting date and project status.
+- The refresh workflows always use the live API. The "sample" choice on "Run workflow" is
+  gone, as it would have published an empty page over the live one.
+- `--source sample` still works locally for exports saved under `sample/<CODE>.…`.
+
 ## 4. Export PPC review
 
 The button builds a standalone report for the current range and filters, and opens it in a
@@ -440,8 +463,6 @@ unreliable on this machine while an Edge update was pending.
 | Issue | Impact | Suggested fix |
 |---|---|---|
 | No JavaScript check in the build | A script error can ship with a green build | Add a headless-browser load check to `validate` or the workflow |
-| P1 and P2 are sample-data demos | They have no refresh workflow, so they are never published; P1's GUID is the all-zeros placeholder | Delete the folders once real projects are live, or generate workflows for them with real GUIDs |
-| Live API not yet called from this code | The three live URLs are built to the given spec but were tested only against sample files | Run one project's workflow by hand and check its page and run log |
 | Manifest hashes never recorded | Every build logs "drift" | Run `python -m build build --write-manifest` once the report is approved |
 | 171 of 293 missed commitments have no reason recorded | The reasons-by-trade visual covers only part of the misses | A process question for the site teams, not a code issue |
 | Inter font not embedded | Pages use the system font stack | Add the font file and embed it, as the design system expects |

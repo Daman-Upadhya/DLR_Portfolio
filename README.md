@@ -18,7 +18,7 @@ For what the report does now, the decisions behind its numbers and the open issu
 |---|---|
 | Template Folder | `Template/` — `calculation.py`, `Dashboard.html`, `Landing.html`, `dashboard_data.json`, `tokens.css`, `scripts/` (`charts.js`, `aggregate.js`, `app.js`), `assets/` (the VisiLean and Digital Realty header logos, PNG, embedded into each page as data URIs) |
 | Calculational Logic | `Template/calculation.py`, hashed into every page footer and every manifest |
-| P1 Folder, P2 Folder | `P1/`, `P2/` — `project.json` (hardcoded project data), `manifest.json`, optional `overrides/` |
+| P1 Folder, P2 Folder | One folder per project code (`PAR14/`, `MRS05/`) — `project.json`, optional `manifest.json` and `overrides/` |
 | Dependency Manifest | `P<key>/manifest.json` — which logic, template and data the page was built against, with hashes |
 | Build Process | `build/` — `python -m build` |
 | Generated Page Artifact | `dist/<key>/index.html` (+ `build.json`), `dist/index.html` — gitignored on `main`, published to the `gh-pages` branch |
@@ -28,22 +28,23 @@ one self-contained HTML file with the data embedded, so it works offline and fro
 
 ## Local build
 
+Copy `tokens.json.example` to `tokens.json` (gitignored) and put each project's token in,
+keyed by project code. The token is the `accessToken` value only; no URL, no `&projectId`.
+
 ```
-python -m build selftest                                   # calculation.py against the sample export + a hand-checked case
-python -m build build --all --source sample
+python -m build selftest                                   # calculation.py against a hand-checked synthetic case
+python -m build build --all --source live
 python -m build validate
-python -m build serve                                      # http://localhost:8000/ and /P1/
+python -m build serve                                      # http://localhost:8000/ and /<CODE>/
 ```
 
 `--source`:
-- `sample` — reads `sample/<key>.tasks.json.gz`, `<key>.committed.json` and `<key>.constraints.json`
-  (`.json` and `.json.gz` both work). A project with no sample task file is built as "unavailable".
-- `--today YYYY-MM-DD` pins the run date. It applies to live builds only; see "Reporting date".
 - `live` — calls VisiLean with the project's token
+- `sample` — reads exports saved as `sample/<CODE>.tasks.json.gz`, `<CODE>.committed.json` and
+  `<CODE>.constraints.json`, for working offline. The repository ships none; a project without
+  them is built as "unavailable".
 - `auto` (default) — live when a token is configured, otherwise sample
-
-For a live build locally, copy `tokens.json.example` to `tokens.json` (gitignored) and put the
-token in. The token is the `accessToken` value only; no URL, no `&projectId`.
+- `--today YYYY-MM-DD` pins the run date. It applies to live builds only; see "Reporting date".
 
 `--write-manifest` records the current dependency hashes into `P<key>/manifest.json`. Do this
 when a project's report is approved; later builds then report "drift" whenever the universal
@@ -141,13 +142,11 @@ to a function; its docstring has the table.
 The task feed has one row per history event; tasks are de-duplicated by guid (the model's
 `DISTINCTCOUNT(guid)`). Only `Construction` and `Design` tasks count.
 
-**Feeds.** Committed PPC needs the commitment feed (`All_Committed_Task`) and the constraint
-KPIs need the constraint feed (`AllConstraintsLog`). Switch them on in `project.json` with
-`source.feeds.committed.type` / `source.feeds.constraints.type` for live builds, and point
-`source.sampleFeeds.committed` / `.constraints` at a file for sample builds (P1:
-`sample/P1.committed.json`, `sample/P1.constraints.json`). Until then those tiles show
-"no data", the 6-week running PPC falls back to planned PPC, and the score leaves out
-constraints overdue.
+**Feeds.** Committed PPC needs the commitment feed (`type=committedTask`, the model's
+`All_Committed_Task`) and the constraint KPIs need the constraint feed (`type=constraintLog`,
+`AllConstraintsLog`). Both are on for every project in `build/project_defaults.json`. A
+project that sets a feed's type to null shows "no data" for those tiles, the 6-week running
+PPC falls back to planned PPC, and the score leaves out constraints overdue.
 
 The commitment feed is nested (`{"data": [{"isAutoCommit", "commitDetails": [{"committedTimestamp",
 "committedStartDate", "committedEndDate", "activitiesGuid": [...]}]}]}`); `calculation.py` expands
@@ -202,11 +201,6 @@ natural code order (P2 before P10) unless `order` is set. `manifest.json` is opt
 To retire a project, delete its folder and its `refresh-<CODE>.yml`. Its card leaves the
 landing page on the next portfolio refresh.
 
-4. For a sample build, which needs no token, put the project's exports in `sample/` as
-   `P<key>.tasks.json.gz` (the task history, gzipped), `P<key>.committed.json` and
-   `P<key>.constraints.json`. They are found by name; no setting is needed. Then run
-   `python -m build build --all --source sample`. `P2/` is a worked example.
-
 ## Refresh workflows
 
 | Workflow | Runs | Does |
@@ -246,8 +240,7 @@ manual run turns them back on.
 
 ```
 Template/               universal logic, templates, defaults
-<CODE>/                 one folder per project (P1, P2 are sample-data demos)
-sample/                 sample export (gzipped) for offline builds
+<CODE>/                 one folder per project (PAR14, MRS05)
 build/                  the build process (fetch, inject, manifest, validate, CLI)
 dist/                   output (gitignored)
 .cache/                 last good feed per project (gitignored; cached in CI)

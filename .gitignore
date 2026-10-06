@@ -8,7 +8,3 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
-# the raw 100 MB export; the committed copy is sample/P1.tasks.json.gz
-Sample Data.json
-# the raw P2 task export; the committed copy is sample/P2.tasks.json.gz
-Sample Task _P2.json

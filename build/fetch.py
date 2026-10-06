@@ -4,7 +4,7 @@ the sample fixture. This is the only module that ever sees a token or a URL.
 
 Token resolution, in order (every candidate found is kept, so a rejected one falls through):
   1. environment variable  VL_TOKEN_<KEY>        (repository secret, one per project)
-  2. VL_TOKENS_JSON        {"P1": "<token>", ...} (one repository secret for all projects)
+  2. VL_TOKENS_JSON        {"PAR14": "<token>", ...} (one repository secret for all projects)
   3. tokens.json           same map, repo root, gitignored, for local runs
 
 Feeds: every project has the task feed (source.type, default "task"). The commitment and
@@ -70,7 +70,7 @@ def _map_from(text: str, source: str) -> dict:
     except json.JSONDecodeError as e:
         raise TokenMissing("%s is not valid JSON: %s" % (source, e))
     if not isinstance(parsed, dict):
-        raise TokenMissing('%s must be an object like {"P1": "<token>"}' % source)
+        raise TokenMissing('%s must be an object like {"PAR14": "<token>"}' % source)
     return {str(k).strip().lower(): v for k, v in parsed.items() if isinstance(v, str) and v.strip()}
 
 

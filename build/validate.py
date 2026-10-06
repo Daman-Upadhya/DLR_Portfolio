@@ -2,7 +2,7 @@
 """Validation gate: configs, manifests, and the built site. Exit 1 on any failure.
 
     python -m build validate      after a build; CI runs this before uploading dist/
-    python -m build selftest      calculation.py against the sample export and a hand-checked case
+    python -m build selftest      calculation.py against a hand-checked synthetic case
 
 Failures stop a deploy. Warnings are printed and do not.
 """
@@ -14,7 +14,7 @@ import re
 import sys
 from datetime import date
 
-from . import DEFAULTS_FILE, DIST_DIR, ROOT, SAMPLE_DIR, TEMPLATE_DIR
+from . import DEFAULTS_FILE, DIST_DIR, ROOT, TEMPLATE_DIR
 from . import manifest as M
 from .fetch import secret_name
 
@@ -224,7 +224,7 @@ def main(scope: str = "all", only: list[str] | None = None) -> int:
 
 
 def _synthetic():
-    """A hand-checked case for the parts the sample cannot exercise (commitments, constraints).
+    """A hand-checked case covering tasks, commitments and constraints.
     today = Thu 1 Oct 2026 -> last six weeks = Mon 17 Aug .. Sun 27 Sep 2026."""
     def t(guid, ttype, ps, pe, as_=" ", ae=" ", hist="", dur="5", status="Complete"):
         return {"guid": guid, "taskId": guid, "taskName": "Task " + guid, "taskType": ttype, "status": status,
@@ -307,14 +307,14 @@ def _pick(obj, path):
 
 
 def selftest() -> int:
-    """calculation.py against the sample export and against a hand-checked synthetic case."""
-    import gzip
+    """calculation.py against a hand-checked synthetic case (no project data needed, so it runs
+    in every refresh before any VisiLean call)."""
     import importlib.util
     spec = importlib.util.spec_from_file_location("dlr_calculation", os.path.join(TEMPLATE_DIR, "calculation.py"))
     calc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(calc)
     data = _read_json(os.path.join(TEMPLATE_DIR, "dashboard_data.json"))
-    today = date(2026, 10, 1)  # the day the sample was exported
+    today = date(2026, 10, 1)
     ok = True
 
     def check(label, passed, detail=""):
@@ -322,54 +322,31 @@ def selftest() -> int:
         print(("ok    " if passed else "FAIL  ") + label + (("  " + detail) if detail and not passed else ""))
         ok &= bool(passed)
 
-    fixture = os.path.join(SAMPLE_DIR, "P1.tasks.json.gz")
-    with gzip.open(fixture, "rt", encoding="utf-8") as f:
-        raw = json.load(f)
-    feeds = {"tasks": raw}
-    for name in ("committed", "constraints"):
-        fp = os.path.join(SAMPLE_DIR, "P1.%s.json" % name)
-        if os.path.exists(fp):
-            with open(fp, encoding="utf-8") as f:
-                payload = json.load(f)
-            feeds[name] = payload["data"] if isinstance(payload, dict) and isinstance(payload.get("data"), list) else payload
-    model = calc.normalise(feeds, data)
-    m = calc.compute(model, {"key": "P1"}, data, today)
-    problems = calc.invariants(m)
-    tasks_only = calc.compute(calc.normalise({"tasks": raw}, data), {"key": "P1"}, data, today)
-    check("sample: tasks de-duplicated by guid", m["totals"]["tasks"] == len({r["guid"] for r in raw if r.get("taskType") in data["taskTypes"]}))
-    check("sample: only Construction and Design", {t["type"] for t in model["tasks"]} <= set(data["taskTypes"]))
-    check("sample: weekly PPC has %d weeks" % data["ppc"]["trendWeeks"], len(m["ppc"]["weeks"]) == data["ppc"]["trendWeeks"])
-    check("sample: six weeks in the window", sum(w["inWindow"] for w in m["ppc"]["weeks"]) == 6)
-    check("sample: score computed", m["score"]["value"] is not None)
-    check("sample: reporting date is the Monday after the last committed week (W40 -> 5 Oct)",
-          "committed" not in feeds or calc.reporting_date(model) == date(2026, 10, 5), str(calc.reporting_date(model)))
-    check("sample: no commitment feed -> no reporting date", calc.reporting_date(calc.normalise({"tasks": raw}, data)) is None)
-    check("sample: project status from the task feed", calc.project_status(model) == "Started", str(calc.project_status(model)))
-    check("sample: missing feeds come out None", tasks_only["constraints"] is None and tasks_only["ppc"]["committed"] is None)
-    if "committed" in feeds:
-        rows = sum(len(d.get("activitiesGuid") or []) for r in feeds["committed"] for d in r.get("commitDetails", []) if d.get("committedTimestamp"))
-        check("sample: commitment feed expanded to one row per activity", m["ppc"]["commitments"]["rows"] == rows, "got %r want %r" % (m["ppc"]["commitments"]["rows"], rows))
-        check("sample: committed PPC computed on the committed basis", m["ppc"]["runningBasis"] == "committed" and m["ppc"]["committed"]["pct"] is not None)
-        check("sample: committed weeks within the window", all(w["committed"] is not None for w in m["ppc"]["weeks"]))
-    if "constraints" in feeds:
-        check("sample: constraints de-duplicated by id", m["constraints"]["total"] == len({r["constrainId"] for r in feeds["constraints"]}))
-        check("sample: constraints-overdue score component present", "Constraints overdue" not in m["score"]["missing"])
-        check("sample: constraint weeks has %d weeks" % data["ppc"]["trendWeeks"], len(m["constraints"]["weeks"]) == data["ppc"]["trendWeeks"])
-    check("sample: delayed rows sorted", all((a["delayDays"] or 0) >= (b["delayDays"] or 0) for a, b in zip(m["delayed"]["rows"], m["delayed"]["rows"][1:])))
-    check("sample: json serialisable", json.dumps(m) is not None)
-    check("sample: invariants", not problems, "; ".join(problems))
-
     feeds, expected = _synthetic()
-    s = calc.compute(calc.normalise(feeds, data), {"key": "x"}, data, today)
+    model = calc.normalise(feeds, data)
+    s = calc.compute(model, {"key": "x"}, data, today)
     for label, (path, want) in expected.items():
         got = _pick(s, path)
         check("synthetic: %s = %r" % (label, want), got == want, "got %r" % (got,))
+    tasks_only = calc.compute(calc.normalise({"tasks": feeds["tasks"]}, data), {"key": "x"}, data, today)
+    check("synthetic: weekly PPC has %d weeks" % data["ppc"]["trendWeeks"], len(s["ppc"]["weeks"]) == data["ppc"]["trendWeeks"])
+    check("synthetic: six weeks in the window", sum(w["inWindow"] for w in s["ppc"]["weeks"]) == 6)
+    check("synthetic: only Construction and Design", {t["type"] for t in model["tasks"]} <= set(data["taskTypes"]))
+    # commitments end 18 Sep and 25 Sep (D has no timestamp): the snapshot date is Mon 28 Sep
+    check("synthetic: reporting date is the Monday after the last committed week",
+          calc.reporting_date(model) == date(2026, 9, 28), str(calc.reporting_date(model)))
+    check("synthetic: no commitment feed -> no reporting date", calc.reporting_date(calc.normalise({"tasks": feeds["tasks"]}, data)) is None)
+    check("synthetic: project status from the task feed", calc.project_status(model) == "Started", str(calc.project_status(model)))
+    check("synthetic: missing feeds come out None", tasks_only["constraints"] is None and tasks_only["ppc"]["committed"] is None)
+    check("synthetic: delayed rows sorted", all((a["delayDays"] or 0) >= (b["delayDays"] or 0) for a, b in zip(s["delayed"]["rows"], s["delayed"]["rows"][1:])))
+    check("synthetic: json serialisable", json.dumps(s) is not None)
     check("synthetic: invariants", not calc.invariants(s), "; ".join(calc.invariants(s)))
 
     e = calc.compute(calc.normalise({"tasks": []}, data), {"key": "x"}, data, today)
     check("empty feed handled", e["totals"]["tasks"] == 0 and e["score"]["value"] is None and not calc.invariants(e))
+    check("empty feed: no status, no reporting date", calc.project_status(calc.normalise({"tasks": []}, data)) is None
+          and calc.reporting_date(calc.normalise({"tasks": []}, data)) is None)
     return 0 if ok else 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

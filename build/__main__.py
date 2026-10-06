@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Command line for the Build Process.
 
-    python -m build build [--all | --project P1 ...] [--source live|sample|auto] [--today YYYY-MM-DD]
+    python -m build build [--all | --project PAR14 ...] [--source live|sample|auto] [--today YYYY-MM-DD]
                           [--write-manifest] [--title "DLR Portfolio"] [--no-landing]
     python -m build landing [--title "DLR Portfolio"]
     python -m build new-project --code CODE --name "Project name" --id GUID [--client "..."]
@@ -31,7 +31,7 @@ def main(argv=None) -> int:
     b.add_argument("--all", action="store_true", help="every project folder (default)")
     b.add_argument("--project", action="append", help="only this project key; repeatable")
     b.add_argument("--source", choices=("live", "sample", "auto"), default="auto",
-                   help="live = VisiLean API; sample = sample/ fixture; auto = live when a token exists, else sample")
+                   help="live = VisiLean API; sample = sample/<CODE>.* exports, if any; auto = live when a token exists, else sample")
     b.add_argument("--today", help="YYYY-MM-DD, pins the run date for live builds (default: today in IST); sample and cached data work out their own date")
     b.add_argument("--write-manifest", action="store_true", help="record current dependency hashes in P<key>/manifest.json")
     b.add_argument("--title", default="DLR Portfolio", help="landing page title")

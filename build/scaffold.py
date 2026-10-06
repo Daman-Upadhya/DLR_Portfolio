@@ -40,12 +40,6 @@ on:
   schedule:
 __CRONS__
   workflow_dispatch:
-    inputs:
-      source:
-        description: "Data source"
-        type: choice
-        default: live
-        options: [live, sample]
 
 permissions:
   contents: write   # push to gh-pages
@@ -87,7 +81,7 @@ jobs:
           __SECRET__: ${{ secrets.__SECRET__ }}
         run: |
           set -uo pipefail
-          python -m build build --project "__CODE__" --source "${{ github.event.inputs.source || 'live' }}" --no-landing | tee build.log
+          python -m build build --project "__CODE__" --source live --no-landing | tee build.log
           code=${PIPESTATUS[0]}
           echo "code=$code" >> "$GITHUB_OUTPUT"
           [ "$code" = "0" ] || [ "$code" = "2" ] || exit "$code"

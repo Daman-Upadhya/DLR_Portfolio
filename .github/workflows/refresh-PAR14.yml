@@ -10,12 +10,6 @@ on:
     - cron: "21 4 * * *"   # 09:51 IST
     - cron: "21 10 * * *"   # 15:51 IST
   workflow_dispatch:
-    inputs:
-      source:
-        description: "Data source"
-        type: choice
-        default: live
-        options: [live, sample]
 
 permissions:
   contents: write   # push to gh-pages
@@ -57,7 +51,7 @@ jobs:
           VL_TOKEN_PAR14: ${{ secrets.VL_TOKEN_PAR14 }}
         run: |
           set -uo pipefail
-          python -m build build --project "PAR14" --source "${{ github.event.inputs.source || 'live' }}" --no-landing | tee build.log
+          python -m build build --project "PAR14" --source live --no-landing | tee build.log
           code=${PIPESTATUS[0]}
           echo "code=$code" >> "$GITHUB_OUTPUT"
           [ "$code" = "0" ] || [ "$code" = "2" ] || exit "$code"
