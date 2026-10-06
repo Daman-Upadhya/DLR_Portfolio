@@ -289,7 +289,7 @@ tr.row-warn td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
 .hp-title .pill .pill-ic { background: var(--on-panel); color: var(--brand); }
 .hp-desc { margin: 0; font-size: 15px; line-height: 1.45; color: var(--on-panel-soft); }
 /* the counts and Export share one row, Export at the right edge */
-.hp-side { display: flex; flex-direction: row-reverse; align-items: center; gap: 14px 36px; flex-wrap: wrap-reverse; justify-content: flex-start; }
+.hp-side { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
 .hp-stats { margin: 0; display: flex; gap: 12px 32px; flex-wrap: wrap; }
 .hp-stats div { min-width: 0; }
 .hp-stats dd { margin: 0; font-size: 27px; font-weight: 600; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -335,7 +335,7 @@ tr.row-warn td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
   .hero-panel { padding: 14px 16px 12px; border-radius: var(--r-xl); }
   .hp-title { font-size: 20px; }
   .hp-stats { gap: 10px 22px; } .hp-stats dd { font-size: 20px; }
-  .hp-side { width: 100%; flex-direction: column-reverse; align-items: stretch; gap: 12px; }
+  .hp-side { width: 100%; align-items: stretch; gap: 12px; }
   .f-summary { white-space: normal; }
   .filters > * { flex: 1 1 auto; } .dr-btn, .ms-btn { width: 100%; }
 }
@@ -512,7 +512,6 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
       </span>
     </a>
     <span class="spacer"></span>
-    <a class="btn" href="{{HOME_HREF}}">← Portfolio</a>
     <button class="btn" id="themeBtn" type="button" aria-pressed="false" title="Switch theme">
       <svg class="theme-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
       Theme
