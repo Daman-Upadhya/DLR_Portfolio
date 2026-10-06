@@ -76,9 +76,10 @@ the `report` job), 1 build error.
 
 ## What the page shows
 
-The logic is a port of the **Digital Reality - KPIs (Committed)** Power BI model (the
-`*.SemanticModel` folder). `Template/calculation.py` maps each Power Query step and DAX measure
-to a function; its docstring has the table.
+The logic is a port of the **Digital Reality - KPIs (Committed)** Power BI model.
+`Template/calculation.py` maps each Power Query step and DAX measure to a function; its
+docstring has the table. The model itself is no longer in the repository (it is in the git
+history before its removal on 6 Oct 2026).
 
 - **Two pages**, as tabs under the filter bar: **Performance** (everything below except
   constraints) and **Constraints** (all constraint KPIs, status, category, target-week trend and
