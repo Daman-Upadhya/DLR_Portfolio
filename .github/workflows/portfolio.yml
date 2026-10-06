@@ -1,0 +1,95 @@
+name: "Refresh portfolio"
+
+# The landing page (index.html, portfolio.json, .nojekyll on gh-pages), rebuilt from the
+# build.json each project refresh published. No VisiLean calls, no secrets.
+#
+# Runs:
+# - after every project refresh (each refresh-<CODE>.yml starts it when it has published);
+#   a newer run cancels an older one, so the last refresh of a burst always wins
+# - when someone presses "Run workflow"; tick "refresh every project" to start every
+#   refresh-<CODE>.yml first (e.g. after a template change)
+# - on a push to main that changes the template, the build code or a project's settings:
+#   the landing page is rebuilt and every project is refreshed, so the change reaches all
+#   pages without waiting for the schedule
+
+on:
+  workflow_dispatch:
+    inputs:
+      refresh_projects:
+        description: "Refresh every project first"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "Template/**"
+      - "build/**"
+      - "*/project.json"
+      - ".github/scripts/**"
+
+permissions:
+  contents: write   # push to gh-pages
+  actions: write    # start the project refresh workflows
+
+jobs:
+  refresh-projects:
+    if: github.event_name == 'push' || inputs.refresh_projects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start every project refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(.github/workflows/refresh-*.yml)
+          [ ${#files[@]} -gt 0 ] || { echo "no project workflows yet"; exit 0; }
+          for f in "${files[@]}"; do
+            echo "starting $(basename "$f")"
+            gh workflow run "$(basename "$f")" --ref "${{ github.ref_name }}"
+          done
+          echo "Each project publishes its page, then starts this workflow again to rebuild the landing page." >> "$GITHUB_STEP_SUMMARY"
+
+  landing:
+    if: github.event_name == 'push' || !inputs.refresh_projects
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # a newer landing build cancels an older one; the project dispatch above is never cancelled
+    concurrency:
+      group: portfolio-landing
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the published site
+        run: bash .github/scripts/pages.sh fetch
+
+      - name: Build the landing page
+        run: python -m build landing
+
+      - name: Validate
+        run: python -m build validate --landing
+
+      - name: Scan for credentials
+        run: bash .github/scripts/pages.sh scan index.html portfolio.json
+
+      - name: Publish
+        run: bash .github/scripts/pages.sh publish "Refresh portfolio" index.html portfolio.json .nojekyll
+
+      - name: Summary
+        run: |
+          python - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          p = json.load(open("dist/portfolio.json"))["projects"]
+          print("### Portfolio: %d project(s)\n" % len(p))
+          print("| Project | State | Source | Last week PPC | 6-week PPC | Open constraints |")
+          print("|---|---|---|---|---|---|")
+          f = lambda v, u="": "-" if v is None else "%s%s" % (v, u)
+          for s in p:
+              print("| %s %s | %s | %s | %s | %s | %s |" % (s["key"], s.get("title") or "", s["state"], s.get("origin") or "-",
+                    f(s.get("lastWeekPpc"), "%"), f(s.get("ppcRunning"), "%"), f(s.get("openConstraints"))))
+          PY

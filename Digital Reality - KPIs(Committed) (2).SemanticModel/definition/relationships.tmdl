@@ -1,0 +1,119 @@
+relationship 4c26fa50-4e35-422a-9886-e1f20ff4393f
+	joinOnDateBehavior: datePartOnly
+	fromColumn: MasterTable.actualStartDate
+	toColumn: LocalDateTable_d0a21824-dc42-4f3f-ad03-98e05272b3a4.Date
+
+relationship 3e281572-4284-4660-9fe1-749388bcc182
+	joinOnDateBehavior: datePartOnly
+	fromColumn: MasterTable.actualEndDate
+	toColumn: LocalDateTable_824165bf-8d64-4bfe-a39a-ed0405e6a560.Date
+
+relationship cebc185e-1a3a-41e7-b26c-dc009454d678
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Calendar.MonthEnding
+	toColumn: LocalDateTable_acc190e6-a6eb-437b-8365-55222b1326f3.Date
+
+relationship 5b2f619c-9549-45be-8c5a-35142476f859
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Calendar.WeekEnding
+	toColumn: LocalDateTable_a20b19d1-e7df-455f-aa44-b854e463bcfb.Date
+
+relationship 5e6465f9-146f-4609-af58-5f682a0df3a5
+	joinOnDateBehavior: datePartOnly
+	fromColumn: MasterTable.LastWeekStart
+	toColumn: LocalDateTable_f0066b64-7fdc-4f89-a06f-842a02ce0530.Date
+
+relationship 9ed48661-ec18-49c1-837f-c53af63db6e6
+	joinOnDateBehavior: datePartOnly
+	fromColumn: MasterTable.plannedStartDate
+	toColumn: LocalDateTable_82a2cbf7-adc2-4457-9004-d2a81fecc50a.Date
+
+relationship d25410ae-1cea-4d55-b455-5dca2fa60f1f
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Calendar.Date
+	toColumn: LocalDateTable_aac79907-07f0-45f6-9ebf-7b6a4dcf36e1.Date
+
+relationship 8b31efd6-1345-43b9-b5c6-09d9d1b4485c
+	joinOnDateBehavior: datePartOnly
+	fromColumn: MasterTable.historyDateTime
+	toColumn: LocalDateTable_06cbe000-7a0e-49e3-bddb-29f372c9258a.Date
+
+relationship 2c4170e8-7a55-4833-b262-b9d225c75a62
+	joinOnDateBehavior: datePartOnly
+	fromColumn: AllConstraintsLog.creationDate
+	toColumn: LocalDateTable_cdcfdbc2-be0d-4a81-bcd9-bfeea3f9d56e.Date
+
+relationship 29327403-fd90-4814-ada8-5b809f3d1a25
+	joinOnDateBehavior: datePartOnly
+	fromColumn: AllConstraintsLog.commitmentDate
+	toColumn: LocalDateTable_76074229-ea57-4db8-a7aa-cb99c050e7af.Date
+
+relationship 9edc4731-7933-9c20-5d86-7f0acf6d8819
+	fromColumn: MasterTable.plannedEndDate
+	toColumn: Calendar.Date
+
+relationship 2244a3fa-9459-5263-7ea4-7fd0471865dc
+	fromColumn: AllConstraintsLog.targetDate
+	toColumn: Calendar.Date
+
+relationship 81eb7ec9-4a7f-01f9-7465-767145a882b2
+	isActive: false
+	fromColumn: AllConstraintsLog.completionDate
+	toColumn: Calendar.Date
+
+relationship 37131786-2540-4adf-93fc-754ab2ace9e8
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.committedTimestamp
+	toColumn: LocalDateTable_bb3685d8-aa71-4776-8d05-d1bc2b4cc833.Date
+
+relationship 0e68b874-dfd2-4f5f-9ad7-f123d818f71d
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.committedStartDate
+	toColumn: LocalDateTable_a644e0d2-9143-4e23-a616-480c26f6fbdd.Date
+
+relationship ce56a960-99af-4c56-a73d-a791a88dec60
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.actualStartDate
+	toColumn: LocalDateTable_ddec0afa-e4d3-4514-b085-9fbd9664ae41.Date
+
+relationship bf09944f-6324-4b0c-aa8d-5f3e9b697947
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.actualEndDate
+	toColumn: LocalDateTable_59f97a1e-2458-4699-a3fa-f9747a24652c.Date
+
+relationship adeb4719-7aea-4c93-ab68-eb2c67c474ee
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.plannedStartDate
+	toColumn: LocalDateTable_eac2ee0d-f16a-47ec-8877-b529bc4ad5ab.Date
+
+relationship 17f294bb-7117-49b6-be76-8c1ffa77540f
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.plannedEndDate
+	toColumn: LocalDateTable_ccbb3d65-5d4a-431c-b521-33693042e405.Date
+
+relationship ffebae28-7727-4b54-9570-f038cb400a90
+	joinOnDateBehavior: datePartOnly
+	fromColumn: All_Committed_Task.historyDateTime
+	toColumn: LocalDateTable_a8432508-0b6b-4f10-aec2-49c0afc781d6.Date
+
+relationship 63a1531a-4d57-266c-5734-b82277d571b3
+	fromColumn: All_Committed_Task.committedEndDate
+	toColumn: Calendar.Date
+
+relationship 2e6e4cc3-2689-4994-81f4-4c09f3f7f520
+	joinOnDateBehavior: datePartOnly
+	fromColumn: AllConstraintsLog.plannedStartDate
+	toColumn: LocalDateTable_3fda9a60-0e24-401b-993d-3dc4b0f4f699.Date
+
+relationship 600cdb3c-d1c8-0049-f348-5e9bff439fdd
+	fromColumn: MasterTable.Custom
+	toColumn: ProjectList.ProjectList
+
+relationship 3c84a214-426a-2439-f17f-7075a8487558
+	fromColumn: All_Committed_Task.'Project Name'
+	toColumn: ProjectList.ProjectList
+
+relationship ec9b7cf1-0636-e177-b9be-58ded8cc5a44
+	fromColumn: AllConstraintsLog.Custom
+	toColumn: ProjectList.ProjectList
+

@@ -1,0 +1,14 @@
+# build output (published to the gh-pages branch by the workflows, never committed to main)
+dist/
+# last-good copy of the live feed, restored in CI by actions/cache
+.cache/
+# local tokens — see tokens.json.example
+tokens.json
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+# the raw 100 MB export; the committed copy is sample/P1.tasks.json.gz
+Sample Data.json
+# the raw P2 task export; the committed copy is sample/P2.tasks.json.gz
+Sample Task _P2.json

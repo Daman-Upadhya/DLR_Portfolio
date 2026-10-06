@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "Digital Reality - KPIs(Committed) (2)"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "e40abec7-d03a-4b68-87bf-6a90f850e8d1"
+  }
+}

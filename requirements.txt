@@ -1,0 +1,2 @@
+# Intentionally empty. The build uses only the Python standard library (3.12+),
+# so CI needs no pip install and local runs need no virtualenv.

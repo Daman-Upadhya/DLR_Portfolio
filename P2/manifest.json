@@ -1,0 +1,37 @@
+{
+  "page": "P2",
+  "logic": {
+    "ref": "Template/calculation.py",
+    "hash": null
+  },
+  "template": {
+    "ref": "Template/Dashboard.html",
+    "hash": null
+  },
+  "data": {
+    "ref": "Template/dashboard_data.json",
+    "hash": null
+  },
+  "tokens": {
+    "ref": "Template/tokens.css",
+    "hash": null
+  },
+  "charts": {
+    "ref": "Template/scripts/charts.js",
+    "hash": null
+  },
+  "aggregate": {
+    "ref": "Template/scripts/aggregate.js",
+    "hash": null
+  },
+  "app": {
+    "ref": "Template/scripts/app.js",
+    "hash": null
+  },
+  "overrides": {
+    "logic": null,
+    "data": null,
+    "sections": null
+  },
+  "lastBuild": null
+}

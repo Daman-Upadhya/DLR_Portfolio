@@ -1,0 +1,138 @@
+/* VisiLean design tokens. Light is the default; dark is opt-in via <html data-theme="dark">.
+   Rule: chrome is neutral, marks carry colour. No raw hex anywhere outside this file. */
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --ink: #2b3237;
+  --muted: #626e76;
+  --faint: #7e8c96;
+  --line: #e0e5e9;
+  --inset: #f4f6f9;
+  --brand: #1793e6;
+
+  /* semantic pairs: a foreground and its tint, always used together */
+  --good: #008344;   --good-bg: #e4fbf3;
+  --warn: #c27d00;   --warn-bg: #fef5e5;
+  --inert: #626e76;  --inert-bg: #eef1f4;
+  --bad: #d13636;    --bad-bg: #ffecec;
+
+  /* categorical series, in validated order: approved, draft, reopened, in-review, rejected */
+  --s-app: #008300;
+  --s-draft: #6b7a86;
+  --s-reop: #eda100;
+  --s-prog: #2a78d6;
+  --s-rej: #e34948;
+  --s-idle: #c9d2d9;
+
+  /* categorical slots for reason categories: a validated order (adjacent pairs stay apart
+     under colour-vision deficiency); assigned in fixed order, never cycled past 8 */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --cat-7: #4a3aa7;
+  --cat-8: #e34948;
+
+  /* ordinal ageing ramp: 1-7 / 8-14 / 15-30 / 31-60 / 60+ days */
+  --age-1: #86b6ef;
+  --age-2: #6da7ec;
+  --age-3: #3987e5;
+  --age-4: #256abf;
+  --age-5: #184f95;
+
+  --line-soft: #ebeef0;   /* hairline, card border, row divider */
+  --surface: #ffffff;     /* chart marker halo, matches the card */
+  --brand-ink: #0e8bdf;
+  --brand-soft: #e6eff8;
+
+  /* chart chrome */
+  --grid: #e6eaee;
+  --axis: #cfd6dc;
+
+  /* top panel: a blue-to-navy band carrying the title, the counts and the filters */
+  --panel-grad: linear-gradient(280deg, #5b8ae0 0%, #4a6cb8 38%, #34487c 72%, #2b3961 100%);
+  --panel-glow: 0 18px 40px -18px rgba(43, 57, 97, .55);
+  --panel-hi: rgba(255, 255, 255, .10);
+  --on-panel: #ffffff;
+  --on-panel-soft: rgba(255, 255, 255, .78);
+  --panel-glass: rgba(255, 255, 255, .12);
+  --panel-glass-hi: rgba(255, 255, 255, .20);
+  --panel-line: rgba(255, 255, 255, .24);
+
+  /* elevation ladder: resting, floating, transient */
+  --shadow: 0 1px 2px rgba(16, 32, 64, .04), 0 2px 10px rgba(14, 139, 223, .07);
+  --shadow-xs: 0 1px 2px rgba(16, 32, 64, .08);
+  --float: 0 14px 44px rgba(16, 32, 64, .18);
+  --float-heavy: 0 14px 44px rgba(16, 32, 64, .20);
+  --tipsh: 0 8px 28px rgba(16, 32, 64, .16);
+  --on-fill: #ffffff;   /* text on a saturated fill: brand mark, ageing chips */
+  --logo-plate: transparent;   /* behind the header logos */
+  --ease: cubic-bezier(.2, 0, 0, 1);
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 22px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1216;
+  --card: #161b20;
+  --ink: #f4f6f8;
+  --muted: #c2ccd3;
+  --faint: #99aab6;
+  --line: #2d353d;
+  --inset: #1b2127;
+  --brand: #45a9eb;
+
+  --good: #52c88f;   --good-bg: rgba(0, 164, 85, .16);
+  --warn: #f9c566;   --warn-bg: rgba(245, 158, 0, .16);
+  --inert: #99aab6;  --inert-bg: #232a31;
+  --bad: #ff8e8e;    --bad-bg: rgba(255, 67, 67, .16);
+
+  --s-app: #35a635;
+  --s-draft: #8a99a5;
+  --s-reop: #f3b437;
+  --s-prog: #4f93e3;
+  --s-rej: #ef6b6a;
+  --s-idle: #3a444d;
+
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #008300;
+  --cat-7: #9085e9;
+  --cat-8: #e66767;
+
+  /* one step lighter in dark mode */
+  --age-1: #a3c8f3;
+  --age-2: #86b6ef;
+  --age-3: #6da7ec;
+  --age-4: #3987e5;
+  --age-5: #256abf;
+
+  --line-soft: #232a31;
+  --surface: #161b20;
+  --brand-ink: #74bef0;
+  --brand-soft: rgba(23, 147, 230, .18);
+
+  --grid: #242c34;
+  --axis: #323c45;
+
+  --panel-grad: linear-gradient(280deg, #3f6dc6 0%, #35549c 38%, #263a69 72%, #1f2b4c 100%);
+  --panel-glow: 0 18px 40px -18px rgba(0, 0, 0, .6);
+  --panel-hi: rgba(255, 255, 255, .07);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 2px 10px rgba(0, 0, 0, .35);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .4);
+  --float: 0 14px 44px rgba(0, 0, 0, .5);
+  --float-heavy: 0 14px 44px rgba(0, 0, 0, .55);
+  --tipsh: 0 8px 28px rgba(0, 0, 0, .45);
+  --on-fill: #0e1216;
+  --logo-plate: #ffffff;   /* the logos are drawn for a light background */
+  color-scheme: dark;
+}

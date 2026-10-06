@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy to tokens.json (gitignored). Key = project folder name. Value = the VisiLean accessToken only: no URL, no &projectId.",
+  "P1": "<token>"
+}

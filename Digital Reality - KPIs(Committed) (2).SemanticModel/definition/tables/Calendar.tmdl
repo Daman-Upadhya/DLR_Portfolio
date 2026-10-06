@@ -1,0 +1,690 @@
+table Calendar
+	lineageTag: 03cc45f7-550b-4b5d-8f73-7c8085b6701e
+
+	measure 'Measure 2' = CALCULATE(FORMAT(MIN('Calendar'[Date]),"dd-mm-yyyy")) & " - " & CALCULATE(FORMAT(MAX('Calendar'[Date]),"dd-mm-yyyy"))
+		lineageTag: 5adcbc02-7024-45a8-b3a4-548dece5d079
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: 17eb09e4-b39c-4d50-9556-2f4a2577fb29
+		summarizeBy: sum
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 479ac886-0166-4a63-9328-f5e8a5aeb1b0
+		summarizeBy: sum
+		sourceColumn: YearOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column YearCompleted
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: ce252e04-c776-4d91-85a5-dfb67f27252e
+		summarizeBy: none
+		sourceColumn: YearCompleted
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarterOfYear
+		dataType: int64
+		formatString: 0
+		lineageTag: 70d17b81-b42e-44d7-a300-82dee07de9b9
+		summarizeBy: sum
+		sourceColumn: QuarterOfYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Quarter & Year'
+		dataType: string
+		lineageTag: f9daea33-c466-4093-930f-4f6628380064
+		summarizeBy: none
+		sourceColumn: Quarter & Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarternYear
+		dataType: int64
+		formatString: 0
+		lineageTag: 68e62547-e8bc-4ea3-ae44-36906594831b
+		summarizeBy: sum
+		sourceColumn: QuarternYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarterOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 5ca48c48-27fe-43f5-94ca-52a99bcd240f
+		summarizeBy: sum
+		sourceColumn: QuarterOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column QuarterCompleted
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: a095e41b-3266-494c-8621-8a926d8cb8f6
+		summarizeBy: none
+		sourceColumn: QuarterCompleted
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthOfYear
+		dataType: int64
+		formatString: 0
+		lineageTag: f4183e11-154e-4356-8adb-0e22af9605b7
+		summarizeBy: sum
+		sourceColumn: MonthOfYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column DayOfMonth
+		dataType: int64
+		formatString: 0
+		lineageTag: b0f89307-f0e3-4b3f-9c2e-fc1e4173f396
+		summarizeBy: sum
+		sourceColumn: DayOfMonth
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: 624aaab4-3d9a-4d06-8e72-093fa400b5bc
+		summarizeBy: none
+		sourceColumn: Month Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthShortName
+		dataType: string
+		lineageTag: 744461de-15bf-4990-bc97-93187fe8fc96
+		summarizeBy: none
+		sourceColumn: MonthShortName
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Initial'
+		dataType: string
+		lineageTag: 61df22bd-465d-4115-a548-1141409dcc0b
+		summarizeBy: none
+		sourceColumn: Month Initial
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month & Year'
+		dataType: string
+		lineageTag: fdac6333-8845-4f7a-b49d-91b0b1e9b0cb
+		summarizeBy: none
+		sourceColumn: Month & Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthnYear
+		dataType: int64
+		formatString: 0
+		lineageTag: f1e6e68f-a420-45cf-94ed-f353e169dfc4
+		summarizeBy: sum
+		sourceColumn: MonthnYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 02e2c485-2e70-41ae-b36a-587ac1a9b67b
+		summarizeBy: sum
+		sourceColumn: MonthOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthCompleted
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: d76d0cf5-e357-4f2d-a4a7-c85543cca9cc
+		summarizeBy: none
+		sourceColumn: MonthCompleted
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthEnding
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 70a1ed17-ebee-484d-862d-3ae53bdba49f
+		summarizeBy: none
+		sourceColumn: MonthEnding
+
+		variation Variation
+			isDefault
+			relationship: cebc185e-1a3a-41e7-b26c-dc009454d678
+			defaultHierarchy: LocalDateTable_acc190e6-a6eb-437b-8365-55222b1326f3.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column DateInt
+		dataType: int64
+		formatString: 0
+		lineageTag: 1aaeb808-0bf3-4d96-abb9-6c54e01bccbe
+		summarizeBy: sum
+		sourceColumn: DateInt
+
+		annotation SummarizationSetBy = Automatic
+
+	column DayOfWeek
+		dataType: int64
+		formatString: 0
+		lineageTag: 5fe89825-1847-485a-89d0-ca8b97c45188
+		summarizeBy: sum
+		sourceColumn: DayOfWeek
+
+		annotation SummarizationSetBy = Automatic
+
+	column DayOfWeekName
+		dataType: string
+		lineageTag: f3f3ab0c-4111-449b-81b7-3edbccb95f8e
+		summarizeBy: none
+		sourceColumn: DayOfWeekName
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Weekday Initial'
+		dataType: string
+		lineageTag: abd5253d-588b-4473-ad04-8bb104338e2c
+		summarizeBy: none
+		sourceColumn: Weekday Initial
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Day Type'
+		dataType: string
+		lineageTag: 9db691f5-0cf8-482f-9912-7052cc49cb1f
+		summarizeBy: none
+		sourceColumn: Day Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'ISO Year'
+		dataType: int64
+		formatString: 0
+		lineageTag: b138a7b7-82f7-4047-b021-4c3cb9603d4a
+		summarizeBy: sum
+		sourceColumn: ISO Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'ISO YearOffset'
+		dataType: double
+		lineageTag: 7c0afa75-26ca-4329-b779-f6b28903a811
+		summarizeBy: sum
+		sourceColumn: ISO YearOffset
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'ISO QuarterOfYear'
+		dataType: int64
+		formatString: 0
+		lineageTag: 00cb0b3c-76b0-48a2-ba6a-72ca3b0ba4d9
+		summarizeBy: sum
+		sourceColumn: ISO QuarterOfYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'ISO Quarter'
+		dataType: string
+		lineageTag: d3ee14b7-32c8-47eb-97dc-b3d705411695
+		summarizeBy: none
+		sourceColumn: ISO Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'ISO Quarter & Year'
+		dataType: string
+		lineageTag: de68d00a-6a5d-4051-a93a-6659e46f0ef5
+		summarizeBy: none
+		sourceColumn: ISO Quarter & Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'ISO QuarternYear'
+		dataType: double
+		lineageTag: 67a5a394-dd35-4ea4-aae3-dfd07947213d
+		summarizeBy: sum
+		sourceColumn: ISO QuarternYear
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'ISO QuarterOffset'
+		dataType: double
+		lineageTag: 975ca424-90c6-458f-b311-8f3d1ec1d927
+		summarizeBy: sum
+		sourceColumn: ISO QuarterOffset
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'ISO Weeknumber'
+		dataType: int64
+		formatString: 0
+		lineageTag: 409d1a8a-843e-4fdf-bb87-1ba9d4681196
+		summarizeBy: sum
+		sourceColumn: ISO Weeknumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Week & Year'
+		dataType: string
+		lineageTag: 25fdcee8-87e2-42c1-b5dd-4e56802921c6
+		summarizeBy: none
+		sourceColumn: Week & Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeeknYear
+		dataType: int64
+		formatString: 0
+		lineageTag: fdf91062-72b3-4e43-ad75-eb28dcf97626
+		summarizeBy: sum
+		sourceColumn: WeeknYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: 66af542a-c587-49fc-8366-ee9b7800429f
+		summarizeBy: sum
+		sourceColumn: WeekOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekCompleted
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 88f1ffcc-f27f-486e-9f2c-398254dc6b2f
+		summarizeBy: none
+		sourceColumn: WeekCompleted
+
+		annotation SummarizationSetBy = Automatic
+
+	column WeekEnding
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 4e5ea470-2c37-4667-b2db-e311a9962899
+		summarizeBy: none
+		sourceColumn: WeekEnding
+
+		variation Variation
+			isDefault
+			relationship: 5b2f619c-9549-45be-8c5a-35142476f859
+			defaultHierarchy: LocalDateTable_a20b19d1-e7df-455f-aa44-b854e463bcfb.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Fiscal Year'
+		dataType: string
+		lineageTag: 4e034493-599a-4e0c-accd-e03f98fb8b12
+		summarizeBy: none
+		sourceColumn: Fiscal Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column FiscalYearOffset
+		dataType: int64
+		formatString: 0
+		lineageTag: de392f4c-7b6b-4495-b668-a5dcf5e2139a
+		summarizeBy: sum
+		sourceColumn: FiscalYearOffset
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Quarter'
+		dataType: string
+		lineageTag: c303a77c-1c69-401d-b81f-fd02b9ec1b24
+		summarizeBy: none
+		sourceColumn: Fiscal Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column FQuarternYear
+		dataType: double
+		lineageTag: ff582d63-12e0-4368-b4c2-b8704b75d69f
+		summarizeBy: sum
+		sourceColumn: FQuarternYear
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column IsCurrentFQ
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 22fddbde-47f4-493f-a404-48ea9e67784b
+		summarizeBy: none
+		sourceColumn: IsCurrentFQ
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Period'
+		dataType: int64
+		formatString: 0
+		lineageTag: e27fcc74-f251-4387-936e-e0f1277122d5
+		summarizeBy: sum
+		sourceColumn: Fiscal Period
+
+		annotation SummarizationSetBy = Automatic
+
+	column FPeriodnYear
+		dataType: double
+		lineageTag: d2f4a134-3c8f-4a37-9906-54b198da8903
+		summarizeBy: sum
+		sourceColumn: FPeriodnYear
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column IsCurrentFP
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 66e926cc-42f5-46aa-b8f5-bddbc80be5d7
+		summarizeBy: none
+		sourceColumn: IsCurrentFP
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Week'
+		dataType: int64
+		formatString: 0
+		lineageTag: 20740c9a-1e67-4c23-9f3b-6ad822fd0d42
+		summarizeBy: sum
+		sourceColumn: Fiscal Week
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fiscal Year & Week'
+		dataType: string
+		lineageTag: f368e015-5482-4e28-bf31-41ae33d232aa
+		summarizeBy: none
+		sourceColumn: Fiscal Year & Week
+
+		annotation SummarizationSetBy = Automatic
+
+	column FWeeknYear
+		dataType: int64
+		formatString: 0
+		lineageTag: a19891a6-1fb2-45ce-8b89-66b4e2dae6ec
+		summarizeBy: sum
+		sourceColumn: FWeeknYear
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsCurrentFW
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 0a89518c-7430-417e-aa38-f66bef029d5a
+		summarizeBy: none
+		sourceColumn: IsCurrentFW
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsAfterToday
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 177abf83-f6a6-4ce8-bc28-027a816132e2
+		summarizeBy: none
+		sourceColumn: IsAfterToday
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsWorkingDay
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: a902a9f2-e897-4c20-afe4-a5b1c3e8784b
+		summarizeBy: none
+		sourceColumn: IsWorkingDay
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsHoliday
+		dataType: string
+		lineageTag: bbcd38e7-c6b4-464d-80d5-40e88bd29844
+		summarizeBy: none
+		sourceColumn: IsHoliday
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsBusinessDay
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 1e068dc0-5cad-4d29-b51f-296cea392b07
+		summarizeBy: none
+		sourceColumn: IsBusinessDay
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsPYTD
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b44aaf2a-8b44-4b77-a465-d9b688cbdeea
+		summarizeBy: none
+		sourceColumn: IsPYTD
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsPFYTD
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 0ad3bcbb-a49d-4232-8f19-9456f63c81b2
+		summarizeBy: none
+		sourceColumn: IsPFYTD
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Week Start from Sunday' = YEAR('Calendar'[Date])&"-"&FORMAT(WEEKNUM('Calendar'[Date],1),"00")
+		lineageTag: 3f097e0a-724c-40bf-a4ec-bd7193dbc96f
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsLastWeek = ```
+			
+			VAR TodayDate = TODAY()
+			VAR StartOfCurrentWeek = TodayDate - WEEKDAY(TodayDate, 2) + 1
+			VAR StartOfLastWeek = StartOfCurrentWeek - 7
+			VAR EndOfLastWeek = StartOfCurrentWeek - 1
+			RETURN
+			IF(
+			    'Calendar'[Date] >= StartOfLastWeek && 'Calendar'[Date]<= EndOfLastWeek,
+			    "Yes",
+			    "No"
+			)
+			
+			```
+		lineageTag: 0708b333-d1c7-4046-8b6a-d1e7b94b2f60
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'WeekYear (Monday)' = IF((YEAR('Calendar'[Date-1]) & "-" & FORMAT(WEEKNUM('Calendar'[Date-1],1),"00")=="2024-53"),"2025-01",YEAR('Calendar'[Date-1]) & "-" & FORMAT(WEEKNUM('Calendar'[Date-1],1),"00"))
+		lineageTag: cd332fb4-9133-4d31-9cde-f1793f613c73
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsLastSixWeeks = ```
+			
+			VAR CurrentDate = TODAY()
+			VAR StartOfThisWeek = CurrentDate - WEEKDAY(CurrentDate, 2) + 1
+			VAR StartOfSixWeeksAgo = StartOfThisWeek - (7 * 6)
+			VAR EndOfLastWeek = StartOfThisWeek - 1
+			RETURN
+			IF(
+			    [Date] >= StartOfSixWeeksAgo && [Date] <= EndOfLastWeek,
+			    "Yes",
+			    "No"
+			)
+			
+			```
+		lineageTag: a6e2b2dd-259c-4ea8-954a-158919dd08a9
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 98e5c51c-839e-4b81-b80d-28822e711179
+		summarizeBy: none
+		sourceColumn: Date
+
+		variation Variation
+			isDefault
+			relationship: d25410ae-1cea-4d55-b455-5dca2fa60f1f
+			defaultHierarchy: LocalDateTable_aac79907-07f0-45f6-9ebf-7b6a4dcf36e1.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Column = IF('Calendar'[IsLastSixWeeks]="Yes",'Calendar'[Week & Year],BLANK())
+		lineageTag: 32f99a5e-c7c9-4d84-8373-14f783fc7364
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Calendar = m
+		mode: import
+		source = ```
+				let
+				    StartDate = #date(2021,01,01) //Date.AddDays(List.Min(List.Combine({MasterTable[plannedStartDate]})),-1)
+				,
+				    EndDate = #date(2028,12,31) //List.Max(List.Combine({MasterTable[actualEndDate],MasterTable[plannedEndDate]}))
+				,
+				    FYStartMonthNum = "4" ,
+				    Holidays = null , 
+				    WDStartNum = 0,
+				      FYStartMonth = if List.Contains( {1..12}, FYStartMonthNum ) then FYStartMonthNum else 1,
+				      WDStart = if List.Contains( {0, 1}, WDStartNum ) then WDStartNum else 0,
+				      CurrentDate = Date.From(DateTime.FixedLocalNow()),
+				      DayCount = Duration.Days(Duration.From(EndDate - StartDate))+1,
+				      Source = List.Dates(StartDate,DayCount,#duration(1,0,0,0)),
+				      AddToday = if EndDate < CurrentDate then List.Combine( {Source, {CurrentDate}}) else Source,
+				      TableFromList = Table.FromList(AddToday, Splitter.SplitByNothing()),
+				      ChangedType = Table.TransformColumnTypes(TableFromList,{{"Column1", type date}}),
+				      RenamedColumns = Table.RenameColumns(ChangedType,{{"Column1", "Date"}}),
+				      InsertYear = Table.AddColumn(RenamedColumns, "Year", each Date.Year([Date]), type number),
+				      InsertYearOffset = Table.AddColumn(InsertYear, "YearOffset", each Date.Year([Date]) - Date.Year(Date.From(CurrentDate)), type number),
+				      InsertCompletedYear = Table.AddColumn(InsertYearOffset, "YearCompleted", each Date.EndOfYear([Date]) < Date.From(Date.EndOfYear(CurrentDate)), type logical),
+				      InsertQuarter = Table.AddColumn(InsertCompletedYear, "QuarterOfYear", each Date.QuarterOfYear([Date]), type number),
+				      InsertCalendarQtr = Table.AddColumn(InsertQuarter, "Quarter & Year", each "Q" & Number.ToText([QuarterOfYear]) & " " & Number.ToText([Year]), type text),
+				      InsertQuarternYear = Table.AddColumn(InsertCalendarQtr, "QuarternYear", each [Year] * 10000 + [QuarterOfYear] * 100, type number),
+				      InsertQuarterOffset = Table.AddColumn(InsertQuarternYear, "QuarterOffset", each ((4 * Date.Year([Date])) +  Date.QuarterOfYear([Date])) - ((4 * Date.Year(Date.From(CurrentDate))) +  Date.QuarterOfYear(Date.From(CurrentDate))), type number),
+				      InsertCompletedQuarter = Table.AddColumn(InsertQuarterOffset, "QuarterCompleted", each Date.EndOfQuarter([Date]) < Date.From(Date.EndOfQuarter(CurrentDate)), type logical),
+				      InsertMonth = Table.AddColumn(InsertCompletedQuarter, "MonthOfYear", each Date.Month([Date]), type number),
+				      InsertDay = Table.AddColumn(InsertMonth, "DayOfMonth", each Date.Day([Date]), type number),
+				      InsertMonthName = Table.AddColumn(InsertDay, "Month Name", each Text.Proper( Date.ToText([Date], "MMMM")), type text),
+				      InsertMonthShort = Table.AddColumn(InsertMonthName, "MonthShortName", each Text.Proper( Date.ToText([Date], "MMM"))),
+				      InsertMonthInitial = Table.AddColumn(InsertMonthShort, "Month Initial", each Text.Proper(Text.Start([Month Name], 1)) & Text.Repeat( Character.FromNumber(8203), [MonthOfYear] ), type text),
+				      InsertCalendarMonth = Table.AddColumn(InsertMonthInitial, "Month & Year", each [MonthShortName] & " " & Number.ToText([Year]), type text),
+				      InsertMonthnYear = Table.AddColumn(InsertCalendarMonth , "MonthnYear", each [Year] * 10000 + [MonthOfYear] * 100, type number),
+				      InsertMonthOffset = Table.AddColumn(InsertMonthnYear, "MonthOffset", each ((12 * Date.Year([Date])) +  Date.Month([Date])) - ((12 * Date.Year(Date.From(CurrentDate))) +  Date.Month(Date.From(CurrentDate))), type number),
+				      InsertCompletedMonth = Table.AddColumn(InsertMonthOffset, "MonthCompleted", each Date.EndOfMonth([Date]) < Date.From(Date.EndOfMonth(CurrentDate)), type logical),
+				      InsertMonthEnding = Table.AddColumn(InsertCompletedMonth, "MonthEnding", each Date.EndOfMonth([Date]), type date),
+				      InsertDayInt = Table.AddColumn(InsertMonthEnding, "DateInt", each [Year] * 10000 + [MonthOfYear] * 100 + [DayOfMonth], type number),
+				      InsertDayOfYear = Table.AddColumn(InsertDayInt, "Day of Year", each Date.DayOfYear([Date]), Int64.Type),
+				      InsertDayWeek = Table.AddColumn(InsertDayOfYear, "DayOfWeek", each Date.DayOfWeek([Date]) + WDStart, Int64.Type),
+				      InsertDayName = Table.AddColumn(InsertDayWeek, "DayOfWeekName", each Text.Proper( Date.ToText([Date], "dddd" )), type text),
+				      InsertDayInitial = Table.AddColumn(InsertDayName, "Weekday Initial", each Text.Proper(Text.Start([DayOfWeekName], 1)) & Text.Repeat( Character.FromNumber(8203), [DayOfWeek] ), type text),
+				      
+				      InsertWeekNumber= Table.AddColumn(InsertDayInitial, "ISO Weeknumber", each
+				        if Number.RoundDown((Date.DayOfYear([Date])-(Date.DayOfWeek([Date], Day.Monday)+1)+10)/7)=0
+				        then Number.RoundDown((Date.DayOfYear(#date(Date.Year([Date])-1,12,31))-(Date.DayOfWeek(#date(Date.Year([Date])-1,12,31), Day.Monday)+1)+10)/7)
+				        else if (Number.RoundDown((Date.DayOfYear([Date])-(Date.DayOfWeek([Date], Day.Monday)+1)+10)/7)=53 and (Date.DayOfWeek(#date(Date.Year([Date]),12,31), Day.Monday)+1<4))
+				        then 1 else Number.RoundDown((Date.DayOfYear([Date])-(Date.DayOfWeek([Date], Day.Monday)+1)+10)/7), type number),
+				      InsertISOyear = Table.AddColumn(InsertWeekNumber, "ISO Year", each Date.Year( Date.AddDays( Date.StartOfWeek([Date], Day.Monday), 3 )),  Int64.Type),
+				      BufferTable = Table.Buffer(Table.Distinct( InsertISOyear[[ISO Year], [DateInt]])),
+				      InsertISOqNum = Table.AddColumn(InsertISOyear, "ISO QuarterOfYear", each if [ISO Weeknumber] >39 then 4 else if [ISO Weeknumber] >26 then 3 else if [ISO Weeknumber] >13 then 2 else 1, Int64.Type),
+				      InsertISOqtr = Table.AddColumn(InsertISOqNum, "ISO Quarter", each "Q" & Number.ToText([ISO QuarterOfYear]), type text),
+				      InsertISOQuarter = Table.AddColumn(InsertISOqtr, "ISO Quarter & Year", each "Q" & Number.ToText([ISO QuarterOfYear]) & " " & Number.ToText([ISO Year]), type text),
+				      InsertISOqNy = Table.AddColumn(InsertISOQuarter, "ISO QuarternYear", each [ISO Year] * 10000 + [ISO QuarterOfYear] * 100, type number),
+				      //InsertISOday = Table.AddColumn(InsertISOqNy, "ISO Day of Year", (OT) => Table.RowCount( Table.SelectRows( BufferTable, (IT) => IT[DateInt] <= OT[DateInt] and IT[ISO Year] = OT[ISO Year])),  Int64.Type),
+				      InsertCalendarWk = Table.AddColumn(InsertISOqNy, "Week & Year", each Text.From([ISO Year]) & "-" & Text.PadStart( Text.From( [ISO Weeknumber] ), 2, "0"), type text ),
+				      InsertWeeknYear = Table.AddColumn(InsertCalendarWk, "WeeknYear", each [ISO Year] * 10000 + [ISO Weeknumber] * 100,  Int64.Type),
+				      InsertWeekOffset = Table.AddColumn(InsertWeeknYear, "WeekOffset", each (Number.From(Date.StartOfWeek([Date], Day.Monday))-Number.From(Date.StartOfWeek(CurrentDate, Day.Monday)))/7, type number),
+				      InsertCompletedWeek = Table.AddColumn(InsertWeekOffset, "WeekCompleted", each Date.EndOfWeek( [Date], Day.Monday) < Date.From(Date.EndOfWeek(CurrentDate, Day.Monday)), type logical),
+				      InsertWeekEnding = Table.AddColumn(InsertCompletedWeek, "WeekEnding", each Date.EndOfWeek( [Date], Day.Monday), type date),
+				      AddFY = Table.AddColumn(InsertWeekEnding, "Fiscal Year", each "FY" & (if [MonthOfYear] >= FYStartMonth and FYStartMonth >1 then Text.PadEnd(Text.End(Text.From([Year] +1), 2), 2, "0") else Text.End( Text.From([Year]), 2)), type text),
+				      AddFQ = Table.AddColumn(AddFY, "Fiscal Quarter", each "FQ" & Text.From( Number.RoundUp( Date.Month( Date.AddMonths( [Date], - (FYStartMonth -1) )) / 3 ))),
+				      AddFQnYr = Table.AddColumn(AddFQ, "FQuarternYear", each (if [MonthOfYear] >= FYStartMonth and FYStartMonth >1 then [Year] +1 else [Year]) * 10000 + Number.RoundUp( Date.Month( Date.AddMonths( [Date], - (FYStartMonth -1) )) / 3 ) * 100, type number),
+				      AddFM = Table.AddColumn(AddFQnYr, "Fiscal Period", each if [MonthOfYear] >= FYStartMonth and FYStartMonth >1 then [MonthOfYear] - (FYStartMonth-1) else if [MonthOfYear] >= FYStartMonth and FYStartMonth =1 then [MonthOfYear] else [MonthOfYear] + (12-FYStartMonth+1), type text),
+				      AddFMnYr = Table.AddColumn(AddFM , "FPeriodnYear", each (if [MonthOfYear] >= FYStartMonth and FYStartMonth >1 then [Year] +1 else [Year]) * 10000 + [Fiscal Period] * 100, type number),
+				      FYCalendarStart = #date( Date.Year(StartDate)-1, FYStartMonth, 1 ),
+				      InsertFFD = Table.AddColumn( AddFMnYr, "FiscalFirstDay", each if [MonthOfYear] >= FYStartMonth and FYStartMonth >1 then #date( Date.Year([Date])+1, FYStartMonth, 1) else #date( Date.Year([Date]), FYStartMonth, 1) ),
+				      AddFYDateRange = Table.Buffer( Table.ExpandTableColumn( Table.ExpandTableColumn( Table.AddColumn( Table.Group( Table.Group( Table.AddColumn( Table.AddColumn( 
+				        Table.RenameColumns( Table.TransformColumnTypes( Table.FromList( { Number.From(FYCalendarStart)..Number.From(EndDate) }, Splitter.SplitByNothing()),{{"Column1", type date}}), {{"Column1", "Date"}}), 
+				          "FiscalFirstDay", each if Date.Month([Date]) < FYStartMonth then #date( Date.Year([Date]), FYStartMonth, 1) else #date( Date.Year([Date])+1, FYStartMonth, 1)),
+				          "FWStartDate", each  Date.AddYears(Date.StartOfWeek( [Date], Day.Monday), 1)),
+				          {"FiscalFirstDay", "FWStartDate"}, {{"AllRows", each _, type table [Date=nullable date, FiscalFirstDay=date, FWStartDate=date]}}),
+				          {"FiscalFirstDay"}, {{"AllRows2", each _, type table [FiscalFirstDay=date, FWStartDate=date, AllRows=table]}}),
+				          "Custom", each Table.AddIndexColumn( [AllRows2], "FY Week", 1, 1))[[Custom]],
+				          "Custom", {"FiscalFirstDay", "FWStartDate", "AllRows", "FY Week"}, {"FiscalFirstDay", "FWStartDate", "AllRows", "FY Week"}),
+				          "AllRows", {"Date"}, {"Date"})[[Date], [FY Week]]
+				        ),
+				      MergeFYW = Table.NestedJoin(InsertFFD, {"Date"}, AddFYDateRange, {"Date"}, "AddFYWeek", JoinKind.LeftOuter),
+				      ExpandFYWeek = Table.TransformColumnTypes( Table.ExpandTableColumn(MergeFYW, "AddFYWeek", {"FY Week"}, {"Fiscal Week"}),{{"Fiscal Week", Int64.Type}}),
+				      AddFYW = Table.AddColumn( ExpandFYWeek, "Fiscal Year & Week", each if FYStartMonth =1 then [#"Week & Year"] else if Date.Month([Date]) < FYStartMonth then Text.From( Date.Year([Date])) & "-" & Text.PadStart( Text.From([Fiscal Week]), 2, "0") else Text.From( Date.Year([Date])+1) & "-" & Text.PadStart(Text.From([Fiscal Week]), 2, "0"), type text),
+				      InsertFWeeknYear = Table.AddColumn(AddFYW, "FWeeknYear", each if FYStartMonth =1 then [WeeknYear] else (if Date.Month([Date]) < FYStartMonth then Date.Year([Date]) else Date.Year([Date])+1) * 10000 + [Fiscal Week] * 100,  Int64.Type),
+				      
+				      InsertIsAfterToday = Table.AddColumn(InsertFWeeknYear, "IsAfterToday", each not ([Date] <= Date.From(CurrentDate)), type logical),
+				      InsertIsWorkingDay = Table.AddColumn(InsertIsAfterToday, "IsWorkingDay", each if Date.DayOfWeek([Date], Day.Monday) > 4 then false else true, type logical),
+				      InsertIsHoliday = Table.AddColumn(InsertIsWorkingDay, "IsHoliday", each if Holidays = null then "Unknown" else List.Contains( Holidays, [Date] ), if Holidays = null then type text else type logical),
+				      InsertIsBusinessDay = Table.AddColumn(InsertIsHoliday, "IsBusinessDay", each if [IsWorkingDay] = true and [IsHoliday] <> true then true else false, type logical),
+				      InsertDayType = Table.AddColumn(InsertIsBusinessDay, "Day Type", each if [IsHoliday] = true then "Holiday" else if [IsWorkingDay] = false then "Weekend" else if [IsWorkingDay] = true then "Weekday" else null, type text),
+				      CurrentDateRecord = Table.SelectRows(InsertDayType, each ([Date] = CurrentDate)),
+				      CurrentISOyear = CurrentDateRecord{0}[ISO Year],
+				      CurrentISOqtr = CurrentDateRecord{0}[ISO QuarterOfYear],
+				      CurrentYear = CurrentDateRecord{0}[Year],
+				      CurrentMonth = CurrentDateRecord{0}[MonthOfYear],
+				      CurrentFiscalFirstDay = CurrentDateRecord{0}[FiscalFirstDay],
+				      PrevFiscalFirstDay = Date.AddYears(CurrentFiscalFirstDay, -1),
+				      CurrentFQ = CurrentDateRecord{0}[FQuarternYear],
+				      CurrentFP = CurrentDateRecord{0}[FPeriodnYear],
+				      CurrentFW = CurrentDateRecord{0}[FWeeknYear],
+				      InsertISOQtrOffset = Table.AddColumn(InsertDayType, "ISO QuarterOffset", each ((4 * [ISO Year]) +  [ISO QuarterOfYear]) - ((4 * CurrentISOyear) + CurrentISOqtr), type number),
+				      InsertISOYrOffset = Table.AddColumn(InsertISOQtrOffset, "ISO YearOffset", each [ISO Year] - CurrentISOyear, type number),
+				      InsertFYoffset = Table.AddColumn(InsertISOYrOffset, "FiscalYearOffset", each try (if [MonthOfYear] >= FYStartMonth then [Year]+1 else [Year]) - (if CurrentMonth >= FYStartMonth then CurrentYear+1 else CurrentYear) otherwise null, type number),
+				      InsertCurrentFQ = Table.AddColumn(InsertFYoffset, "IsCurrentFQ", each if [FQuarternYear] = CurrentFQ then true else false, type logical),
+				      InsertCurrentFP = Table.AddColumn(InsertCurrentFQ, "IsCurrentFP", each if [FPeriodnYear] = CurrentFP then true else false, type logical),
+				      InsertCurrentFW = Table.AddColumn(InsertCurrentFP, "IsCurrentFW", each if [FWeeknYear] = CurrentFW then true else false, type logical),
+				      InsertPYTD = Table.AddColumn(InsertCurrentFW, "IsPYTD", each if CurrentYear-1 = [Year] and [Day of Year] <= CurrentDateRecord{0}[Day of Year] then true else false, type logical),
+				        ListPrevFYDates = List.Buffer( Table.SelectRows( Table.ExpandTableColumn( Table.NestedJoin(
+				            Table.AddIndexColumn( Table.RenameColumns( Table.TransformColumnTypes( Table.FromList( List.Dates( PrevFiscalFirstDay, Number.From(CurrentFiscalFirstDay-PrevFiscalFirstDay),#duration(1,0,0,0)), Splitter.SplitByNothing()),{{"Column1", type date}}), {{"Column1", "DateFY"}}), "Index", 1, 1), {"Index"}, 
+				            Table.AddIndexColumn( Table.RenameColumns( Table.TransformColumnTypes( Table.FromList( List.Dates( Date.AddYears( PrevFiscalFirstDay, -1), Number.From( PrevFiscalFirstDay - Date.AddYears( PrevFiscalFirstDay, -1)),#duration(1,0,0,0)), Splitter.SplitByNothing()),{{"Column1", type date}}), {{"Column1", "DateFY"}}), "Index", 1, 1)
+				            , {"Index"}, "Table", JoinKind.LeftOuter), "Table", {"DateFY"}, {"PrevDateFY"}), each [DateFY] <= CurrentDate)[PrevDateFY] ),
+				      InsertPFYTD = Table.AddColumn(InsertPYTD, "IsPFYTD", each if [FiscalYearOffset] = -1 and List.Contains(ListPrevFYDates, [Date] ) then true else false, type logical),
+				      
+				      RemoveToday = Table.RemoveColumns( if EndDate < CurrentDate then Table.SelectRows(InsertPFYTD, each ([Date] <> CurrentDate)) else InsertPFYTD, {"Day of Year", "FiscalFirstDay"}),
+				      ChType = Table.TransformColumnTypes(RemoveToday,{{"Year", Int64.Type}, {"QuarterOfYear", Int64.Type}, {"MonthOfYear", Int64.Type}, {"DayOfMonth", Int64.Type}, {"DateInt", Int64.Type}, {"DayOfWeek", Int64.Type}, {"ISO Weeknumber", Int64.Type}, {"WeeknYear", Int64.Type}, {"MonthnYear", Int64.Type}, {"QuarternYear", Int64.Type}, {"Fiscal Period", Int64.Type}, {"WeekOffset", Int64.Type}, {"MonthOffset", Int64.Type}, {"QuarterOffset", Int64.Type}, {"YearOffset", Int64.Type}, {"FiscalYearOffset", Int64.Type}}),
+				      ReorderColumns = Table.ReorderColumns(ChType, {"Date", "Year", "YearOffset", "YearCompleted", "QuarterOfYear", "Quarter & Year", "QuarternYear", "QuarterOffset", "QuarterCompleted", "MonthOfYear", "DayOfMonth", "Month Name", "MonthShortName", "Month Initial", "Month & Year", "MonthnYear", "MonthOffset", "MonthCompleted", "MonthEnding", "DateInt", "DayOfWeek", "DayOfWeekName", "Weekday Initial", "Day Type", "ISO Year", "ISO YearOffset", "ISO QuarterOfYear", "ISO Quarter", "ISO Quarter & Year", "ISO QuarternYear", "ISO QuarterOffset", "ISO Weeknumber", "Week & Year", "WeeknYear", "WeekOffset", "WeekCompleted", "WeekEnding", "Fiscal Year", "FiscalYearOffset", "Fiscal Quarter", "FQuarternYear", "IsCurrentFQ", "Fiscal Period", "FPeriodnYear", "IsCurrentFP", "Fiscal Week", "Fiscal Year & Week", "FWeeknYear", "IsCurrentFW", "IsAfterToday", "IsWorkingDay", "IsHoliday", "IsBusinessDay", "IsPYTD", "IsPFYTD"}, MissingField.UseNull)
+				in
+				    ReorderColumns
+				```
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

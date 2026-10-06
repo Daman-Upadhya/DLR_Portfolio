@@ -1,0 +1,54 @@
+{
+  "_comment": "Settings every project shares. A project's project.json only needs projectId (plus title); anything it sets wins over this file, key by key. {key} is replaced with the project's folder name. Used at build time only, never embedded in a page.",
+  "client": "Digital Reality",
+  "source": {
+    "_comment": "Every refresh makes three calls to baseUrl?accessToken=<VL_TOKEN_<CODE> secret>&projectId=<projectId>&type=<type>&<extraQuery>: the task history (type), the commitments (feeds.committed) and the constraint log (feeds.constraints). A feed whose type is null is not fetched. sampleFile / sampleFeeds are what --source sample reads (.json or .json.gz); a missing feed file is skipped.",
+    "baseUrl": "https://go.visilean.com/pb/PowerBiAPI/resource/powerBi/getData/visilean",
+    "type": "task",
+    "extraQuery": "IncludeStatusChange=true&IncludeReschedule=true&IncludeConstraintNotes=true&IncludeOther=true",
+    "feeds": {
+      "committed": {
+        "type": "committedTask",
+        "extraQuery": ""
+      },
+      "constraints": {
+        "type": "constraintLog",
+        "extraQuery": ""
+      }
+    },
+    "sampleFile": "sample/{key}.tasks.json.gz",
+    "sampleFeeds": {
+      "committed": "sample/{key}.committed.json",
+      "constraints": "sample/{key}.constraints.json"
+    }
+  },
+  "facts": [
+    {
+      "label": "Project",
+      "value": null
+    },
+    {
+      "label": "Contractor",
+      "value": null
+    },
+    {
+      "label": "Region",
+      "value": null
+    },
+    {
+      "label": "Country",
+      "value": null
+    },
+    {
+      "label": "City",
+      "value": null
+    },
+    {
+      "label": "Status",
+      "value": null
+    }
+  ],
+  "display": {
+    "groupBy": "organisation"
+  }
+}

@@ -1,0 +1,345 @@
+table AllConstraintsLog
+	lineageTag: f33b5ec9-e560-49b8-a8c9-52c7169863aa
+
+	measure Total_Constraints = CALCULATE(DISTINCTCOUNT(AllConstraintsLog[UniqueID]))+0
+		formatString: 0
+		lineageTag: 74ff3009-673e-42ce-9210-2329faae2e0a
+
+	column constrainId
+		dataType: int64
+		formatString: 0
+		lineageTag: a24db010-fc78-4b06-8411-2f519a13f796
+		summarizeBy: count
+		sourceColumn: constrainId
+
+		annotation SummarizationSetBy = Automatic
+
+	column title
+		dataType: string
+		lineageTag: ed1238e0-024a-4b14-b914-b8ea94ed0680
+		summarizeBy: none
+		sourceColumn: title
+
+		annotation SummarizationSetBy = Automatic
+
+	column discription
+		dataType: string
+		lineageTag: eddd57ee-a3fb-47e6-865f-349d9d7aae1a
+		summarizeBy: none
+		sourceColumn: discription
+
+		annotation SummarizationSetBy = Automatic
+
+	column author
+		dataType: string
+		lineageTag: d241b0b0-920e-4342-98f8-d4da3c55967c
+		summarizeBy: none
+		sourceColumn: author
+
+		annotation SummarizationSetBy = Automatic
+
+	column authorOrganisation
+		dataType: string
+		lineageTag: 0ccc4c23-e6bc-4bfd-ab24-935da1750038
+		summarizeBy: none
+		sourceColumn: authorOrganisation
+
+		annotation SummarizationSetBy = Automatic
+
+	column owner
+		dataType: string
+		lineageTag: 336ff4ec-9b5e-4550-b3ac-f2211554fb01
+		summarizeBy: none
+		sourceColumn: owner
+
+		annotation SummarizationSetBy = Automatic
+
+	column ownerOrganisation
+		dataType: string
+		lineageTag: dafbbda8-854f-4e00-bf5c-c4ce6564b551
+		summarizeBy: none
+		sourceColumn: ownerOrganisation
+
+		annotation SummarizationSetBy = Automatic
+
+	column location
+		dataType: string
+		lineageTag: e7e67b35-0f04-46f3-8d15-eac6c41842e6
+		summarizeBy: none
+		sourceColumn: location
+
+		annotation SummarizationSetBy = Automatic
+
+	column priority
+		dataType: string
+		lineageTag: a34fd65a-7cb2-49b5-8b7d-3f0e2aca21bc
+		summarizeBy: none
+		sourceColumn: priority
+
+		annotation SummarizationSetBy = Automatic
+
+	column category
+		dataType: string
+		lineageTag: ca2e9d7c-d157-479a-a463-9448f09b7ee6
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = Automatic
+
+	column creationDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f9c9f7f1-ddcb-46d7-ac11-8c6e0e5df054
+		summarizeBy: none
+		sourceColumn: creationDate
+
+		variation Variation
+			isDefault
+			relationship: 2c4170e8-7a55-4833-b262-b9d225c75a62
+			defaultHierarchy: LocalDateTable_cdcfdbc2-be0d-4a81-bcd9-bfeea3f9d56e.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column targetDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 5713dc1e-4eb1-40a5-b1a9-10afda6e53e3
+		summarizeBy: none
+		sourceColumn: targetDate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column commitmentDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: bd1d954e-44cc-4be6-8422-e0ff6bfe5be2
+		summarizeBy: none
+		sourceColumn: commitmentDate
+
+		variation Variation
+			isDefault
+			relationship: 29327403-fd90-4814-ada8-5b809f3d1a25
+			defaultHierarchy: LocalDateTable_76074229-ea57-4db8-a7aa-cb99c050e7af.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column completionDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 59d61bee-d5da-4cd5-88c8-3e253bbe2dd0
+		summarizeBy: none
+		sourceColumn: completionDate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column note
+		dataType: string
+		lineageTag: da17b74d-cdd2-456e-8a27-ebe1dcd556f5
+		summarizeBy: none
+		sourceColumn: note
+
+		annotation SummarizationSetBy = Automatic
+
+	column activityGuid
+		dataType: string
+		lineageTag: 14619391-5ad3-4c77-b1b6-c889a630d328
+		summarizeBy: none
+		sourceColumn: activityGuid
+
+		annotation SummarizationSetBy = Automatic
+
+	column trade
+		dataType: string
+		lineageTag: 3251e501-63af-4275-bb64-d829b4588ee5
+		summarizeBy: none
+		sourceColumn: trade
+
+		annotation SummarizationSetBy = Automatic
+
+	column bim360Issue
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 26e6081b-fb09-4a29-98d9-5ff0057bdbdb
+		summarizeBy: none
+		sourceColumn: bim360Issue
+
+		annotation SummarizationSetBy = Automatic
+
+	column Custom
+		dataType: string
+		lineageTag: 0ebf5f42-5bce-40b5-be59-df11835e803f
+		summarizeBy: none
+		sourceColumn: Custom
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Constraints Status'
+		dataType: string
+		lineageTag: aa461f1c-8745-4400-9a99-daa10868210f
+		summarizeBy: none
+		sourceColumn: Constraints Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Delayed Constraint' = IF(AND('AllConstraintsLog'[targetDate]<TODAY(),'AllConstraintsLog'[Constraints Status]<>"closed"),"Delay",BLANK())
+		lineageTag: 4bb7c3e1-9674-4469-905b-ee2f4aa06f51
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column #CreationYrWeek =
+			
+			var _t = YEAR([creationDate]) & "-" & FORMAT(WEEKNUM([creationDate],2),"00")
+			RETURN
+			if(_t == "2024-53","2025-01",_t)
+		lineageTag: f88e35dc-5858-46fb-8635-7445e1a11563
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column #TargetYrWeek =
+			
+			var _t = YEAR([targetDate]) & "-" & FORMAT(WEEKNUM([targetDate],2),"00")
+			RETURN
+			if(_t == "2024-53","2025-01",_t)
+		lineageTag: b9af25a3-d9ca-4c89-b866-f845f32cf384
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column #committmentYrWeek =
+			
+			var _t = YEAR([commitmentDate]) & "-" & FORMAT(WEEKNUM([commitmentDate],2),"00")
+			RETURN
+			if(_t == "2024-53","2025-01",_t)
+		lineageTag: 0a7f6bc0-ddf2-4d92-8b04-7a9834ffc95a
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column #completeYrWeek =
+			
+			var _t = YEAR([completionDate]) & "-" & FORMAT(WEEKNUM([completionDate],2),"00")
+			RETURN
+			if(_t == "2024-53","2025-01",_t)
+		lineageTag: 78a6a168-5987-4b20-9a89-b8b1403de080
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Delayed by days Constraint' = IF(AND('AllConstraintsLog'[targetDate]<TODAY(),'AllConstraintsLog'[Constraints Status]<>"closed"),DATEDIFF('AllConstraintsLog'[targetDate],TODAY(),DAY),BLANK())
+		formatString: 0
+		lineageTag: ebd0cdfb-144c-4ecb-9830-a9a9ae661103
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column UniqueID
+		dataType: string
+		lineageTag: d5bfc785-a64e-4d38-9c02-64a4ffa3aa4b
+		summarizeBy: none
+		sourceColumn: UniqueID
+
+		annotation SummarizationSetBy = Automatic
+
+	column LagTime = IF(AllConstraintslog[completionDate]<>BLANK(),DATEDIFF(AllConstraintslog[targetDate],AllConstraintslog[completionDate],DAY))
+		formatString: 0
+		lineageTag: 3ab910b3-b02f-4eb6-a5cd-9a83e324e9e3
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Column 2' = IF(NOT ISBLANK(AllConstraintsLog[completionDate]) && AllConstraintsLog[completionDate]<=AllConstraintsLog[plannedStartDate],"S","F")
+		lineageTag: a5be9197-f15c-4ac1-991c-4906076bf8ce
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sub Project'
+		dataType: string
+		lineageTag: ea49ba61-4cd6-4b71-a835-9c8269789cd7
+		summarizeBy: none
+		sourceColumn: Sub Project
+
+		annotation SummarizationSetBy = Automatic
+
+	column status = LOOKUPVALUE(MasterTable[status],MasterTable[guid],AllConstraintsLog[activityGuid])
+		lineageTag: efef07f1-9d72-46a1-9f0d-c6cc46889739
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column plannedStartDate = LOOKUPVALUE(MasterTable[plannedStartDate],MasterTable[guid],AllConstraintsLog[activityGuid])
+		formatString: dd-mm-yyyy
+		lineageTag: 485cafa8-2cef-469a-94b0-e444feaa8b7e
+		summarizeBy: none
+
+		variation Variation
+			isDefault
+			relationship: 2e6e4cc3-2689-4994-81f4-4c09f3f7f520
+			defaultHierarchy: LocalDateTable_3fda9a60-0e24-401b-993d-3dc4b0f4f699.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	column taskName = LOOKUPVALUE(MasterTable[taskName],MasterTable[guid],AllConstraintsLog[activityGuid])
+		lineageTag: 54ffa842-3a69-40a2-a688-9443fe6f59b7
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition AllConstraintsLog = m
+		mode: import
+		queryGroup: MasterTables
+		source = ```
+				let
+				    Source = Table.Combine({DPFCampus_Constraints, Mercury_Constraints,ExceptDPFCampus_Cons}),
+				    #"Changed Type1" = Table.TransformColumnTypes(Source,{{"targetDate", type date}, {"creationDate", type date}, {"commitmentDate", type date}, {"completionDate", type date}}),
+				    Custom1 = Table.AddColumn(#"Changed Type1", "Constraints Status", each if [commitmentDate] = null then "Open" else if [completionDate] = null then "Committed" else "Closed"),
+				    #"Split Column by Delimiter" = Table.ExpandListColumn(Table.TransformColumns(Custom1, {{"activityGuid", Splitter.SplitTextByDelimiter(",", QuoteStyle.Csv), let itemType = (type nullable text) meta [Serialized.Text = true] in type {itemType}}}), "activityGuid"),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Split Column by Delimiter",{{"activityGuid", type text}}),
+				    Custom2 = let
+				    Source = #"Changed Type",
+				    Replacements = {
+				        {"Materials", "Material"},
+				        {"Approvals", "Approval"},
+				        {"Others", "Other"},
+				        {"External Conditions", "External"},		
+				        {"Pre Work Not Complete", "Predecessor"},
+				        {"1. Delayed / improper materials", "Material"},		
+				        {"2. Preceding work not completed", "Predecessor"},				
+				        {"Predecessors", "Predecessor"},
+				        {"4. Change of priorities", "Predecessor"},		
+				        {"8. Missing / incomplete information", "External"},
+				        {"5. Labour shortage", "Manpower"},
+				        {"9. Missing tools or machinery", "Equipment"},
+				         {"Perdecessor", "Predecessor"},
+				        {"Health and Safety", "Safety"}
+				    },
+				    ReplaceWords = Table.TransformColumns(
+				        Source,
+				        {{"category", each List.Accumulate(Replacements, _, (state, current) => Text.Replace(state as text, current{0}, current{1})), type text}}
+				    )
+				in
+				    ReplaceWords,
+				    Custom3 = Table.ReplaceValue(Custom2,each [Sub Project],each if [Sub Project] = null  then [Custom] else [Sub Project],Replacer.ReplaceValue,{"Sub Project"}),
+				    #"Added Custom" = Table.AddColumn(Custom3, "UniqueID", each Text.From([constrainId]) & "_" & 
+				    Text.From([Custom]) & "_" & 
+				    Text.From([#"Sub Project"]))
+				in
+				    #"Added Custom"
+				```
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

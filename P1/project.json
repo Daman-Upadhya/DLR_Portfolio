@@ -1,0 +1,8 @@
+{
+  "_comment": "The only per-project input. projectId is the VisiLean project GUID; title and client are what the pages show. Everything else (API source, feeds, sample files, fact labels, display) comes from build/project_defaults.json, and any key set here overrides it. Facts left out or null are filled where the data can answer them (Project from title, Status from the task feed). The folder name is the page URL segment (/P1/) and the token secret suffix (VL_TOKEN_P1).",
+  "key": "P1",
+  "title": "ABC Campus",
+  "client": "Digital Reality",
+  "projectId": "00000000-0000-0000-0000-000000000000",
+  "facts": []
+}

@@ -1,0 +1,146 @@
+{
+  "_comment": "Template data every project page inherits. A project's project.json 'display' block and its optional overrides/data.json are deep-merged on top. Ported from the 'Digital Reality - KPIs (Committed)' Power BI model. Changing this file changes every project on the next build; its hash is recorded in each P<key>/manifest.json.",
+
+  "eyebrow": "DLR",
+  "locale": "en-IN",
+  "staleAfterHours": 20,
+
+  "_taskTypes": "RowData: Table.SelectRows taskType = Construction or Design",
+  "taskTypes": ["Construction", "Design"],
+
+  "ppc": {
+    "_comment": "targetPct = the model's min% measure (.85). trendWeeks = weeks drawn on the weekly PPC chart; the last six are the L6W window.",
+    "targetPct": 85,
+    "trendWeeks": 12,
+    "_rollingWeeks": "PPC review export: weeks in the rolling average PPC (the model's 6-week running PPC).",
+    "rollingWeeks": 6
+  },
+
+  "score": {
+    "_comment": "!!@Total Score. bands are tried in order: [operator, threshold, points]; no match = else. Units: percent for ppc/activityDelayed/constraintsOverdue, days for avgDelay/plannedDuration, tasks per week for weeklyPlanned. status: [min score, label, tone], first match wins, else Red.",
+    "components": [
+      { "key": "ppc", "label": "PPC (6-week running)", "unit": "%", "weight": 0.35,
+        "bands": [[">=", 85, 100], [">=", 75, 80], [">=", 65, 60], [">=", 55, 40]], "else": 20 },
+      { "key": "activityDelayed", "label": "Activities delayed", "unit": "%", "weight": 0.15,
+        "bands": [["<=", 5, 100], ["<=", 10, 80], ["<=", 20, 60], ["<=", 30, 40]], "else": 20 },
+      { "key": "constraintsOverdue", "label": "Constraints overdue", "unit": "%", "weight": 0.15,
+        "bands": [["<=", 5, 100], ["<=", 10, 80], ["<=", 20, 60], ["<=", 30, 40]], "else": 20 },
+      { "key": "avgDelay", "label": "Avg. delay duration", "unit": "d", "weight": 0.15,
+        "bands": [["<=", 3, 100], ["<=", 7, 80], ["<=", 14, 60], ["<=", 30, 40]], "else": 20 },
+      { "key": "plannedDuration", "label": "Avg. planned duration", "unit": "d", "weight": 0.10,
+        "bands": [["<=", 6, 100], ["<=", 8, 80], ["<=", 10, 60], ["<=", 12, 40]], "else": 20 },
+      { "key": "weeklyPlanned", "label": "Weekly planned activities", "unit": "", "weight": 0.10,
+        "bands": [[">", 70, 100], [">=", 61, 80], [">=", 41, 60], [">=", 30, 40]], "else": 20 }
+    ],
+    "status": [[75, "Green", "good"], [50, "Amber", "warn"]]
+  },
+
+  "tolerance": {
+    "_comment": "Tolerance_Limits table: good / watch rules, anything else is critical.",
+    "weeklyPlanned":      { "label": "Weekly Planned Activities",      "good": [">=", 100], "watch": [">=", 50], "text": ["≥ 100", "50 – 100", "< 50"] },
+    "ppc":                { "label": "% Plan Complete (PPC)",          "good": [">=", 80],  "watch": [">=", 65], "text": ["≥ 80%", "65 – 79%", "< 65%"] },
+    "activityDelayed":    { "label": "% Activities Delayed",           "good": ["<=", 5],   "watch": ["<=", 15], "text": ["≤ 5%", "6 – 15%", "> 15%"] },
+    "avgDelay":           { "label": "Avg. Delay Duration (Days)",     "good": ["<=", 5],   "watch": ["<=", 15], "text": ["≤ 5 days", "6 – 15 days", "> 15 days"] },
+    "constraintsOverdue": { "label": "% Constraints Overdue",          "good": ["<=", 15],  "watch": ["<=", 30], "text": ["≤ 15%", "16 – 30%", "> 30%"] },
+    "constraintsOnTime":  { "label": "% Constraints Resolved On-Time", "good": [">=", 70],  "watch": [">=", 40], "text": ["≥ 70%", "40 – 69%", "< 40%"] },
+    "constraintLag":      { "label": "Avg. Constraint Lag (Days)",     "good": ["<=", 7],   "watch": ["<=", 20], "text": ["≤ 7 days", "8 – 20 days", "> 20 days"] },
+    "unlinked":           { "label": "% Unlinked Constraints",         "good": ["<=", 30],  "watch": ["<=", 60], "text": ["≤ 30%", "31 – 60%", "> 60%"] },
+    "plannedDuration":    { "label": "Planned Duration - 6 Week Avg.", "good": ["<=", 5],   "watch": ["<=", 10], "text": ["≤ 5 days", "6-10 days", "> 10 days"] }
+  },
+
+  "reasons": {
+    "_comment": "MasterTable 'Reasons for Variance': order = the Text.Contains chain over activityHistory (first match wins, case-sensitive); categories = the 'Reasons for Variance1' mapping. events = the 'Reasons Category' column.",
+    "_project": "The project's own reasons for variance, as written in VisiLean (French), come first: they appear in the history as 'Note: <reason>' / 'Note added: <reason>', and a history row also carries the task name, which can contain an English keyword. Each is mapped to the nearest model category below.",
+    "order": [
+      "Erreur de plan", "Refus HSE", "Manque d'appro", "Pas assez de ressource", "Predecesseur non accompli", "Problème qualité", "Trop de coactivité", "Intempérie météo", "Durée sous estimé", "BUG system", "PLUS RAPIDE",
+      "Outstanding Design", "Works not instructed", "Equipment Unavailable", "Labour shortfall",
+      "Predecessor incomplete", "Safety non compliance", "Safety issues/stand-downs", "Quality issue Rework",
+      "Quality of installation", "Adverse Weather", "Weather", "Approvals", "Operations", "Resquencing of works",
+      "No access", "Partial access", "Access interrupted", "Late design", "Design change", "Inadequate design",
+      "Awaiting design clarifica", "Scope variation", "On hold' instructions", "Work by others incomplete",
+      "Free issue material", "Material", "Performance/productivity", "Client change request",
+      "Decision to re-sequence", "Contractor Not appointed", "Ahead of Schedule", "Health and Safety",
+      "Under estimation of effort", "Others"
+    ],
+    "categories": {
+      "Space": ["No access", "Access interrupted", "Partial access", "Trop de coactivité"],
+      "Approvals": ["Approvals"],
+      "Scope variation": ["Client change request", "Scope variation"],
+      "Adverse weather": ["Adverse Weather", "Weather", "Intempérie météo"],
+      "Health and safety": ["Health and Safety", "Safety non compliance", "Safety issues/stand-downs", "Refus HSE"],
+      "Labour shortfall": ["Labour shortfall", "Under estimation of effort", "Contractor Not appointed", "Performance/productivity", "Pas assez de ressource", "Durée sous estimé"],
+      "Materials": ["Material", "Free issue material", "Manque d'appro"],
+      "Others": ["Ahead of Schedule", "Others", "PLUS RAPIDE", "BUG system"],
+      "Design": ["Outstanding Design", "Design change", "Inadequate design", "Late design", "On hold' instructions", "Awaiting design clarifica", "Erreur de plan"],
+      "Works not instructed": ["Works not instructed"],
+      "Operations": ["Operations", "Decision to re-sequence"],
+      "Equipment": ["Equipment Unavailable"],
+      "Predecessor incomplete": ["Predecessor incomplete", "Work by others incomplete", "Predecesseur non accompli"],
+      "Quality and rework": ["Quality issue Rework", "Quality of installation", "Problème qualité"]
+    },
+    "uncategorised": "Uncategorised",
+    "noneLabel": "No reason recorded",
+    "topCategories": 8,
+    "_standard": "MasterTable 'Standard Reason': the coarser SWITCH grouping of the raw reason, used beside 'categories'. A reason in no group is 'uncategorised'. The model lists 'Awaiting design clarification' (the full text) which never matches the truncated raw reason; the truncated key is used here so the intent holds.",
+    "standard": {
+      "Outstanding Design": ["Awaiting design clarifica", "Design change", "Inadequate design", "Late design", "Outstanding Design", "Works not instructed", "On hold' instructions", "Erreur de plan"],
+      "Materials": ["Material", "Free issue material", "Manque d'appro"],
+      "Labour / Resources": ["Labour shortfall", "Contractor Not appointed", "Performance/productivity", "Under estimation of effort", "Pas assez de ressource", "Durée sous estimé"],
+      "Plant & Equipment": ["Equipment Unavailable"],
+      "Access / Space": ["No access", "Access interrupted", "Partial access", "Trop de coactivité"],
+      "Predecessor Work": ["Predecessor incomplete", "Work by others incomplete", "Predecesseur non accompli"],
+      "Client / Approvals": ["Approvals", "Client change request", "Scope variation"],
+      "Quality & Rework": ["Quality issue Rework", "Quality of installation", "Problème qualité"],
+      "Health & Safety": ["Health and Safety", "Safety issues/stand-downs", "Safety non compliance", "Refus HSE"],
+      "External / Weather": ["Adverse Weather", "Weather", "Intempérie météo"],
+      "Planning / Sequencing": ["Decision to re-sequence", "Operations"],
+      "Other": ["Others", "Ahead of Schedule", "PLUS RAPIDE", "BUG system"]
+    },
+    "events": [
+      ["started late", "Late Start"],
+      ["completed late", "Late Complete"],
+      ["Stopped", "Stopped"],
+      ["warning by", "Warning"],
+      ["rescheduled by", "Rescheduled"]
+    ]
+  },
+
+  "constraints": {
+    "_comment": "AllConstraintsLog Custom2: substring replacements applied in order to category.",
+    "categoryReplacements": [
+      ["Materials", "Material"], ["Approvals", "Approval"], ["Others", "Other"],
+      ["External Conditions", "External"], ["Pre Work Not Complete", "Predecessor"],
+      ["1. Delayed / improper materials", "Material"], ["2. Preceding work not completed", "Predecessor"],
+      ["Predecessors", "Predecessor"], ["4. Change of priorities", "Predecessor"],
+      ["8. Missing / incomplete information", "External"], ["5. Labour shortage", "Manpower"],
+      ["9. Missing tools or machinery", "Equipment"], ["Perdecessor", "Predecessor"],
+      ["Health and Safety", "Safety"]
+    ],
+    "tableLimit": 15
+  },
+
+  "status": {
+    "_comment": "order = series order on the status chart. groups decide the colour class only.",
+    "order": ["Complete", "Quality checked", "Started", "Warning", "Stopped", "Rejected at quality check",
+              "Ready", "Forced Ready", "Not Ready", "Not Committed"],
+    "labels": { "Rejected at quality check": "Rejected at QC" },
+    "groups": {
+      "complete": ["Complete", "Quality checked"],
+      "inProgress": ["Started"],
+      "issue": ["Warning", "Stopped", "Rejected at quality check"],
+      "ready": ["Ready", "Forced Ready"],
+      "notStarted": ["Not Ready", "Not Committed"]
+    }
+  },
+
+  "unassignedLabel": "Unassigned",
+  "groupBy": "organisation",
+  "groupByLabel": { "organisation": "organisation", "trade": "trade", "location": "location", "owner": "owner" },
+  "breakdown": { "topN": 10 },
+
+  "delayed": {
+    "_comment": "buckets are inclusive day ranges of DelayDays; null = open-ended.",
+    "buckets": [[1, 7], [8, 14], [15, 30], [31, 60], [61, null]],
+    "tableLimit": 25
+  }
+}

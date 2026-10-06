@@ -1,0 +1,524 @@
+table MasterTable
+	lineageTag: 2edd257e-747f-4bdc-91f1-318c89550903
+
+	measure Measure = 0
+		formatString: 0
+		lineageTag: 2333f602-66b5-4c71-b3b3-c195798ecb83
+
+	column location
+		dataType: string
+		lineageTag: 366d0add-c6f3-4019-9dac-ead91ee2c8fe
+		summarizeBy: none
+		sourceColumn: location
+
+		annotation SummarizationSetBy = Automatic
+
+	column parent
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b2fc7ca8-b9aa-4cd8-904c-2ec726a484db
+		summarizeBy: none
+		sourceColumn: parent
+
+		annotation SummarizationSetBy = Automatic
+
+	column owner
+		dataType: string
+		lineageTag: 6f7b3a10-75b8-4f53-9610-e017bf18291c
+		summarizeBy: none
+		sourceColumn: owner
+
+		annotation SummarizationSetBy = Automatic
+
+	column description
+		dataType: string
+		lineageTag: 473ed969-33ea-40e5-8353-e532e6c721df
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	column guid
+		dataType: string
+		lineageTag: adb122fe-d0c3-4864-9859-c37acede746f
+		summarizeBy: none
+		sourceColumn: guid
+
+		annotation SummarizationSetBy = Automatic
+
+	column actualStartDate
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		lineageTag: 56010f9c-09a6-43ca-9b1b-63f71d6a76e9
+		summarizeBy: none
+		sourceColumn: actualStartDate
+
+		variation Variation
+			isDefault
+			relationship: 4c26fa50-4e35-422a-9886-e1f20ff4393f
+			defaultHierarchy: LocalDateTable_d0a21824-dc42-4f3f-ad03-98e05272b3a4.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	column actualEndDate
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		lineageTag: ba52047e-14ff-4cd5-9cfd-fd46bc15ebdd
+		summarizeBy: none
+		sourceColumn: actualEndDate
+
+		variation Variation
+			isDefault
+			relationship: 3e281572-4284-4660-9fe1-749388bcc182
+			defaultHierarchy: LocalDateTable_824165bf-8d64-4bfe-a39a-ed0405e6a560.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	column trade
+		dataType: string
+		lineageTag: d9b876d4-69a4-4e1e-8ff3-2172b8f62159
+		summarizeBy: none
+		sourceColumn: trade
+
+		annotation SummarizationSetBy = Automatic
+
+	column plannedStartDate
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		lineageTag: 3daebbaf-14ae-4b8f-9403-35db4825ab9d
+		summarizeBy: none
+		sourceColumn: plannedStartDate
+
+		variation Variation
+			isDefault
+			relationship: 9ed48661-ec18-49c1-837f-c53af63db6e6
+			defaultHierarchy: LocalDateTable_82a2cbf7-adc2-4457-9004-d2a81fecc50a.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	column plannedEndDate
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		lineageTag: db2e352b-77b4-4190-b777-17b8a3b6246d
+		summarizeBy: none
+		sourceColumn: plannedEndDate
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+		annotation PBI_FormatHint = {"isCustom":true}
+
+	column plannedDuration
+		dataType: int64
+		formatString: 0
+		lineageTag: 37182eab-083c-4ddb-82d5-cd85385c7bee
+		summarizeBy: sum
+		sourceColumn: plannedDuration
+
+		annotation SummarizationSetBy = Automatic
+
+	column actualDuration
+		dataType: int64
+		formatString: 0
+		lineageTag: 6df83bfe-ec42-48ae-a568-3966bb0c139e
+		summarizeBy: sum
+		sourceColumn: actualDuration
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 36d92489-f0a0-4329-9965-89da403b46aa
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column percentComplete
+		dataType: int64
+		formatString: 0
+		lineageTag: fd7ca8ca-e84b-48dc-826f-e90aa579f30f
+		summarizeBy: sum
+		sourceColumn: percentComplete
+
+		annotation SummarizationSetBy = Automatic
+
+	column organisation
+		dataType: string
+		lineageTag: 4a823112-7870-458a-a130-117d9197f769
+		summarizeBy: none
+		sourceColumn: organisation
+
+		annotation SummarizationSetBy = Automatic
+
+	column taskType
+		dataType: string
+		lineageTag: f100b2fa-0719-41a5-b76f-c31ba1e9b860
+		summarizeBy: none
+		sourceColumn: taskType
+
+		annotation SummarizationSetBy = Automatic
+
+	column taskName
+		dataType: string
+		lineageTag: 1d9b3ba2-817d-47fc-b3ca-60626196db4c
+		summarizeBy: none
+		sourceColumn: taskName
+
+		annotation SummarizationSetBy = Automatic
+
+	column activityHistory
+		dataType: string
+		lineageTag: 5da45849-9e40-427e-9e84-6d7e9de809b3
+		summarizeBy: none
+		sourceColumn: activityHistory
+
+		annotation SummarizationSetBy = Automatic
+
+	column historyDateTime
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: af3eb3cb-c56b-403d-be8a-13aa55462567
+		summarizeBy: none
+		sourceColumn: historyDateTime
+
+		variation Variation
+			isDefault
+			relationship: 8b31efd6-1345-43b9-b5c6-09d9d1b4485c
+			defaultHierarchy: LocalDateTable_06cbe000-7a0e-49e3-bddb-29f372c9258a.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Reasons Category'
+		dataType: string
+		lineageTag: cb1899cc-0561-41d6-b87e-39b52f9b6718
+		summarizeBy: none
+		sourceColumn: Reasons Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Delay = IF(AND(OR(AND('MasterTable'[plannedStartDate]<TODAY(),'MasterTable'[actualStartDate]==BLANK()),AND('MasterTable'[plannedEndDate]<TODAY(),'MasterTable'[actualEndDate]==BLANK())),'MasterTable'[taskType]=="Construction"),"Delay",BLANK())
+		lineageTag: 0eebae31-641e-4e45-993e-1f7d7bbecb89
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Today week & Year' = YEAR(TODAY()) & "-" & FORMAT(WEEKNUM(TODAY(),2),"00")
+		lineageTag: 0447b3b7-2c06-4796-90d3-324d72e90615
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column LastWeekStart = ```
+			
+			    VAR TodayDate = TODAY()
+			    VAR WeekDayNumber = WEEKDAY(TodayDate, 2) -- 2 indicates that the week starts on Monday
+			    VAR LastMonday = TodayDate - WeekDayNumber - 6 -- Calculate the last Monday
+			    RETURN LastMonday
+			
+			//LastWeekEnd = 
+			    //VAR TodayDate = TODAY()
+			    //VAR WeekDayNumber = WEEKDAY(TodayDate, 2) -- 2 indicates that the week starts on Monday
+			    //VAR LastSunday = TodayDate - WeekDayNumber
+			    //RETURN LastSunday
+			
+			```
+		formatString: General Date
+		lineageTag: 15832630-b5c4-4703-84c3-eb71f611076b
+		summarizeBy: none
+
+		variation Variation
+			isDefault
+			relationship: 5e6465f9-146f-4609-af58-5f682a0df3a5
+			defaultHierarchy: LocalDateTable_f0066b64-7fdc-4f89-a06f-842a02ce0530.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column PlannedstartWeek = YEAR('MasterTable'[plannedStartDate]) & "-" & FORMAT(WEEKNUM('MasterTable'[plannedStartDate],2),"00")
+		lineageTag: 309c14b4-81ae-4e7f-9e3e-405a7a1842b3
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column taskId
+		dataType: int64
+		formatString: 0
+		lineageTag: 5fca9807-538e-4711-bb4d-9f1428b1f730
+		summarizeBy: count
+		sourceColumn: taskId
+
+		annotation SummarizationSetBy = Automatic
+
+	column IsLastSixWeeks = ```
+			
+			VAR CurrentDate = TODAY()
+			VAR StartOfThisWeek = CurrentDate - WEEKDAY(CurrentDate, 2) + 1
+			VAR StartOfSixWeeksAgo = StartOfThisWeek - (7 * 6)
+			VAR EndOfLastWeek = StartOfThisWeek - 1
+			RETURN
+			IF(
+			    [plannedEndDate] >= StartOfSixWeeksAgo && [plannedEndDate] <= EndOfLastWeek,
+			    "Yes",
+			    "No"
+			)
+			
+			```
+		lineageTag: 37a29a12-9bb0-4c0d-a9ca-2589ff177e94
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Reasons for VarianceOld'
+		dataType: string
+		lineageTag: eea358cb-8ee3-4530-8fc2-677f84964cb6
+		summarizeBy: none
+		sourceColumn: Reasons for VarianceOld
+
+		annotation SummarizationSetBy = Automatic
+
+	column DelayDays =
+			IF(AND(MasterTable[plannedStartDate]<TODAY(),MasterTable[actualStartDate]==BLANK()),DATEDIFF(MasterTable[plannedStartDate],TODAY(),DAY),
+			            IF(
+			    AND(MasterTable[plannedEndDate]<TODAY(),MasterTable[actualEndDate]==BLANK()),DATEDIFF(MasterTable[plannedEndDate],TODAY(),DAY)))
+		formatString: 0
+		lineageTag: cdd285f7-ba2c-4508-9623-bde6ad2d53a3
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Planned_Week-Year
+		dataType: string
+		lineageTag: 53e42f0c-04d1-4787-80e5-eefe0e54fcb9
+		summarizeBy: none
+		sourceColumn: Planned_Week-Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actual_Week-Year
+		dataType: string
+		lineageTag: c3174ed1-d7c8-4b10-be5e-1eb831b6b0c2
+		summarizeBy: none
+		sourceColumn: Actual_Week-Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Planned_PPC
+		dataType: string
+		lineageTag: 40e1d339-89e8-4c17-a93c-955b0826332b
+		summarizeBy: none
+		sourceColumn: Planned_PPC
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Standard Reason' =
+			
+			SWITCH(
+			    TRUE(),
+			   [Reasons for VarianceOld] IN {
+			        "Awaiting design clarification", "Design change", "Inadequate design",
+			        "Late design", "Outstanding Design", "Works not instructed", "On hold' instructions"
+			    }, "Outstanding Design",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Material", "Free issue material"
+			    }, "Materials",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Labour shortfall", "Contractor Not appointed",
+			        "Performance/productivity", "Under estimation of effort"
+			    }, "Labour / Resources",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Equipment Unavailable"
+			    }, "Plant & Equipment",
+			
+			   [Reasons for VarianceOld] IN {
+			        "No access", "Access interrupted", "Partial access"
+			    }, "Access / Space",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Predecessor incomplete", "Work by others incomplete"
+			    }, "Predecessor Work",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Approvals", "Client change request", "Scope variation"
+			    }, "Client / Approvals",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Quality issue Rework", "Quality of installation"
+			    }, "Quality & Rework",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Health and Safety", "Safety issues/stand-downs", "Safety non compliance"
+			    }, "Health & Safety",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Adverse Weather", "Weather"
+			    }, "External / Weather",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Decision to re-sequence", "Operations"
+			    }, "Planning / Sequencing",
+			
+			   [Reasons for VarianceOld] IN {
+			        "Others", "Ahead of Schedule"
+			    }, "Other",
+			
+			    "Uncategorised"
+			)
+		lineageTag: 820fa829-4f1a-4cf2-91d2-0360100e6d48
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sub Project'
+		dataType: string
+		lineageTag: b3dcb03a-fcf9-4a87-838a-287af47bf381
+		summarizeBy: none
+		sourceColumn: Sub Project
+
+		annotation SummarizationSetBy = Automatic
+
+	column Project
+		dataType: string
+		lineageTag: 0b86e4fa-56cc-4355-bb90-119dde16a4a9
+		summarizeBy: none
+		sourceColumn: Project
+
+		annotation SummarizationSetBy = Automatic
+
+	column taskPriority
+		dataType: string
+		lineageTag: 7b6ad392-b7e8-4318-887b-48b6873b8fa0
+		summarizeBy: none
+		sourceColumn: taskPriority
+
+		annotation SummarizationSetBy = Automatic
+
+	column plannedCompletionWeek
+		dataType: string
+		lineageTag: fe9b7587-4602-4633-9f0c-957a211f11f3
+		summarizeBy: none
+		sourceColumn: plannedCompletionWeek
+
+		annotation SummarizationSetBy = Automatic
+
+	column actualCompletionWeek
+		dataType: string
+		lineageTag: 2cfd0e11-27a4-41e1-8ec3-dbab1d8a9bce
+		summarizeBy: none
+		sourceColumn: actualCompletionWeek
+
+		annotation SummarizationSetBy = Automatic
+
+	column Custom
+		dataType: string
+		lineageTag: 5e72a4fe-ac35-4e4b-845e-7b390705fba0
+		summarizeBy: none
+		sourceColumn: Custom
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Reasons for Variance'
+		dataType: string
+		lineageTag: c4c4017c-ebdc-4d99-84fe-73cbb9ed8d5f
+		summarizeBy: none
+		sourceColumn: Reasons for Variance
+
+		annotation SummarizationSetBy = Automatic
+
+	partition MasterTable = m
+		mode: import
+		queryGroup: MasterTables
+		source = ```
+				let
+				    Source = RowData,
+				    Custom2 = Table.AddColumn(Source, "Reasons for Variance", each 
+				    if Text.Contains([activityHistory], "Outstanding Design") then "Outstanding Design"
+				    else if Text.Contains([activityHistory], "Works not instructed") then "Works not instructed"
+				    else if Text.Contains([activityHistory], "Equipment Unavailable") then "Equipment Unavailable"
+				    else if Text.Contains([activityHistory], "Labour shortfall") then "Labour shortfall"
+				    else if Text.Contains([activityHistory], "Predecessor incomplete") then "Predecessor incomplete"
+				    else if Text.Contains([activityHistory], "Safety non compliance") then "Safety non compliance"
+				    else if Text.Contains([activityHistory], "Safety issues/stand-downs") then "Safety issues/stand-downs"
+				    else if Text.Contains([activityHistory], "Quality issue Rework") then "Quality issue Rework"
+				    else if Text.Contains([activityHistory], "Quality of installation") then "Quality of installation"
+				    else if Text.Contains([activityHistory], "Adverse Weather") then "Adverse Weather"
+				    else if Text.Contains([activityHistory], "Weather") then "Weather"
+				    else if Text.Contains([activityHistory], "Approvals") then "Approvals"
+				    else if Text.Contains([activityHistory], "Operations") then "Operations"
+				    else if Text.Contains([activityHistory], "Resquencing of works") then "Resquencing of works"
+				    else if Text.Contains([activityHistory], "No access") then "No access"
+				    else if Text.Contains([activityHistory], "Partial access") then "Partial access"
+				    else if Text.Contains([activityHistory], "Access interrupted") then "Access interrupted"
+				    else if Text.Contains([activityHistory], "Late design") then "Late design"
+				    else if Text.Contains([activityHistory], "Design change") then "Design change"
+				    else if Text.Contains([activityHistory], "Inadequate design") then "Inadequate design"
+				    else if Text.Contains([activityHistory], "Awaiting design clarifica") then "Awaiting design clarifica"
+				    else if Text.Contains([activityHistory], "Scope variation") then "Scope variation"
+				    else if Text.Contains([activityHistory], "On hold' instructions") then "On hold' instructions"
+				    else if Text.Contains([activityHistory], "Work by others incomplete") then "Work by others incomplete"
+				    else if Text.Contains([activityHistory], "Free issue material") then "Free issue material"
+				    else if Text.Contains([activityHistory], "Material") then "Material"
+				    else if Text.Contains([activityHistory], "Performance/productivity") then "Performance/productivity"
+				    else if Text.Contains([activityHistory], "Client change request") then "Client change request"
+				    else if Text.Contains([activityHistory], "Decision to re-sequence") then "Decision to re-sequence"
+				    else if Text.Contains([activityHistory], "Contractor Not appointed") then "Contractor Not appointed"
+				    else if Text.Contains([activityHistory], "Ahead of Schedule") then "Ahead of Schedule"
+				    else if Text.Contains([activityHistory], "Health and Safety") then "Health and Safety"
+				    else if Text.Contains([activityHistory], "Under estimation of effort") then "Under estimation of effort"
+				    else if Text.Contains([activityHistory], "Others") then "Others"
+				    else null),
+				    Custom3 = Table.AddColumn(Custom2, "Reasons Category", each if Text.Contains([activityHistory], "started late") then "Late Start" else if Text.Contains([activityHistory], "completed late") then "Late Complete" else if Text.Contains([activityHistory], "Stopped") then "Stopped" else if Text.Contains([activityHistory], "warning by") then "Warning" else if Text.Contains([activityHistory], "rescheduled by") then "rescheduled by" else null),
+				     #"Changed Type" = Table.TransformColumnTypes(Custom3,{{"actualStartDate", type datetime},{"actualEndDate", type datetime},{"plannedStartDate", type datetime},{"plannedEndDate", type datetime},{"historyDateTime", type datetime}}),
+				    Custom1 = Table.TransformColumnTypes(#"Changed Type",{{"actualStartDate", type date},{"actualEndDate", type date},{"plannedStartDate", type date},{"plannedEndDate", type date}}),
+				    #"PlannedWeek-Year" = Table.AddColumn(Custom1, "Planned_Week-Year", each Text.From(Date.Year([plannedEndDate])) & "-" & Text.PadStart( Text.From(  if Number.RoundDown((Date.DayOfYear([plannedEndDate])-(Date.DayOfWeek([plannedEndDate], Day.Monday)+1)+10)/7)=0
+				        then Number.RoundDown((Date.DayOfYear(#date(Date.Year([plannedEndDate])-1,12,31))-(Date.DayOfWeek(#date(Date.Year([plannedEndDate])-1,12,31), Day.Monday)+1)+10)/7)
+				        else if (Number.RoundDown((Date.DayOfYear([plannedEndDate])-(Date.DayOfWeek([plannedEndDate], Day.Monday)+1)+10)/7)=53 and (Date.DayOfWeek(#date(Date.Year([plannedEndDate]),12,31), Day.Monday)+1<4))
+				        then 1 else Number.RoundDown((Date.DayOfYear([plannedEndDate])-(Date.DayOfWeek([plannedEndDate], Day.Monday)+1)+10)/7) ), 2, "0"), type text ),
+				    #"ActualWeek-Year" = Table.AddColumn(#"PlannedWeek-Year", "Actual_Week-Year", each Text.From(Date.Year([actualEndDate])) & "-" & Text.PadStart( Text.From(  if Number.RoundDown((Date.DayOfYear([actualEndDate])-(Date.DayOfWeek([actualEndDate], Day.Monday)+1)+10)/7)=0
+				        then Number.RoundDown((Date.DayOfYear(#date(Date.Year([actualEndDate])-1,12,31))-(Date.DayOfWeek(#date(Date.Year([actualEndDate])-1,12,31), Day.Monday)+1)+10)/7)
+				        else if (Number.RoundDown((Date.DayOfYear([actualEndDate])-(Date.DayOfWeek([actualEndDate], Day.Monday)+1)+10)/7)=53 and (Date.DayOfWeek(#date(Date.Year([actualEndDate]),12,31), Day.Monday)+1<4))
+				        then 1 else Number.RoundDown((Date.DayOfYear([actualEndDate])-(Date.DayOfWeek([actualEndDate], Day.Monday)+1)+10)/7) ), 2, "0"), type text ),
+				    #"Added Custom" = Table.AddColumn(#"ActualWeek-Year", "Planned_PPC", each if [#"Actual_Week-Year"] <> null then
+				            if [#"Actual_Week-Year"] = [#"Planned_Week-Year"] then "Yes" else "No"
+				        else
+				            "No"),
+				    Custom4 = Table.AddColumn(#"Added Custom", "Reasons for Variance1", each if List.Contains({"No access","Access interrupted","Partial access"}, [Reasons for Variance]) then "Space"
+				else if List.Contains({"Approvals"}, [Reasons for Variance]) then "Approvals"
+				else if List.Contains({"Client change request","Scope variation"}, [Reasons for Variance]) then "Scope Variation"
+				else if List.Contains({"Adverse Weather","Weather"}, [Reasons for Variance]) then "Adverse Weather"
+				else if List.Contains({"Health and Safety","Safety non compliance","Safety issues/stand-downs"}, [Reasons for Variance]) then "Health and Safety"
+				else if List.Contains({"Labour shortfall","Under estimation of effort","Contractor Not appointed","Performance/productivity"}, [Reasons for Variance]) then "Labour Shortfall"
+				else if List.Contains({"Material","Free issue material"}, [Reasons for Variance]) then "Materials"
+				else if List.Contains({"Ahead of Schedule","Others"}, [Reasons for Variance]) then "Others"
+				else if List.Contains({"Outstanding Design","Design change","Inadequate design","Late design","On hold' instructions","Awaiting design clarifica"}, [Reasons for Variance]) then "Design"
+				else if List.Contains({"Works not instructed"}, [Reasons for Variance]) then "Works not instructed"
+				else if List.Contains({"Operations","Decision to re-sequence"}, [Reasons for Variance]) then "Operations"
+				else if List.Contains({"Equipment Unavailable"}, [Reasons for Variance]) then "Equipments"
+				else if List.Contains({"Predecessor incomplete","Work by others incomplete"}, [Reasons for Variance]) then "Predecessor incomplete"
+				else if List.Contains({"Quality issue Rework","Quality of installation"}, [Reasons for Variance]) then "Quality and Rework"
+				else if [Reasons for Variance] = null or [Reasons for Variance] = "" then "Uncategorised"
+				else null),
+				    #"Renamed Columns" = Table.RenameColumns(Custom4,{{"Reasons for Variance", "Reasons for VarianceOld"}, {"Reasons for Variance1", "Reasons for Variance"}})
+				in
+				    #"Renamed Columns"
+				```
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+
