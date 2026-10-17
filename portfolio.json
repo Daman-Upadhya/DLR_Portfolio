@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "state": "fresh",
+    "generatedAt": "2026-10-17T19:19:01+05:30",
+    "today": "2026-10-17",
+    "buildId": "ecf4642a83f9",
+    "logicHash": "977cfc01cdb2",
+    "staleAfterHours": 20,
+    "locale": "en-IN",
+    "origin": "live"
+  },
+  "projects": [
+    {
+      "key": "MRS05",
+      "title": "MRS05 Production Control",
+      "client": "Digital Reality",
+      "order": 1000,
+      "state": "stale",
+      "origin": "cache",
+      "generatedAt": "2026-10-17T19:18:01+05:30",
+      "dataAsOf": "2026-10-17T14:11:39+05:30",
+      "tokenRejected": false,
+      "href": "./MRS05/",
+      "health": {
+        "label": "Amber",
+        "tone": "warn",
+        "reason": "Total score 61.0 of 100"
+      },
+      "score": 61.0,
+      "scoreStatus": "Amber",
+      "ppcRunning": 56.9,
+      "ppcBasis": "committed",
+      "ppcPlanned": 96.8,
+      "activityDelayedPct": 0.3,
+      "tasks": 3241,
+      "delayed": 105,
+      "lastCommittedWeek": "2026-41",
+      "tradesBelowTarget": 30,
+      "projectStatus": "Started",
+      "lastWeekPpc": 49.2,
+      "lastWeekTone": "bad",
+      "lastWeek": "2026-41",
+      "ppcRunningTone": "bad",
+      "trades": 61,
+      "openConstraints": 7
+    },
+    {
+      "key": "PAR14",
+      "title": "PAR14 Production Control",
+      "client": "Digital Reality",
+      "order": 1000,
+      "state": "fresh",
+      "origin": "live",
+      "generatedAt": "2026-10-17T19:18:13+05:30",
+      "dataAsOf": "2026-10-17T19:18:13+05:30",
+      "tokenRejected": false,
+      "href": "./PAR14/",
+      "health": {
+        "label": "Amber",
+        "tone": "warn",
+        "reason": "Total score 65.0 of 100"
+      },
+      "score": 65.0,
+      "scoreStatus": "Amber",
+      "ppcRunning": 77.2,
+      "ppcBasis": "committed",
+      "ppcPlanned": 84.9,
+      "activityDelayedPct": 3.3,
+      "tasks": 1886,
+      "delayed": 88,
+      "lastCommittedWeek": "2026-41",
+      "tradesBelowTarget": 3,
+      "projectStatus": "Started",
+      "lastWeekPpc": 67.7,
+      "lastWeekTone": "warn",
+      "lastWeek": "2026-41",
+      "ppcRunningTone": "warn",
+      "trades": 7,
+      "openConstraints": 23
+    }
+  ]
+}
