@@ -200,6 +200,31 @@ def _event(history: str, data: dict) -> str | None:
     return None
 
 
+def _custom(r: dict, name: str):
+    """A task's custom field: customField is {"name": value} (or a [{"name", "value"}] list)."""
+    cf = r.get("customField")
+    if isinstance(cf, dict):
+        return cf.get(name)
+    if isinstance(cf, list):
+        for f in cf:
+            if isinstance(f, dict) and f.get("name") == name:
+                return f.get("value")
+    return None
+
+
+def _high_risk(r: dict, data: dict) -> list[str] | None:
+    """High-risk types of a task row (data.highRisk), or None when the row is not flagged.
+    "Work at Height,Lifting" -> ["Lifting", "Work at Height"]; flagged without a type -> the unspecified label."""
+    hr = _get(data, "highRisk", {}) or {}
+    flag = _text(_custom(r, hr.get("flagField", "High Risk Activity")))
+    if not flag or flag.lower() not in {str(v).lower() for v in hr.get("flagValues", ["Yes"])}:
+        return None
+    raw = _custom(r, hr.get("typeField", "High Risk Activity Type"))
+    parts = raw if isinstance(raw, list) else str(raw or "").split(",")
+    types = sorted({" ".join(str(p).split()) for p in parts if str(p).strip()})
+    return types or [hr.get("unspecifiedLabel", "Type not recorded")]
+
+
 def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
     types = set(_get(data, "taskTypes", ["Construction", "Design"]) or [])
     by_guid: "OrderedDict[str, dict]" = OrderedDict()
@@ -246,6 +271,7 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
                 "reasons": set(),
                 "categories": set(),
                 "events": set(),
+                "highRisk": None,
             }
             # Planned_PPC: finished in the same ISO week it was planned to finish
             t["plannedPPC"] = bool(t["actualWeek"] and t["actualWeek"] == t["plannedWeek"])
@@ -255,6 +281,8 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
             t["categories"].add(category)
         if event:
             t["events"].add(event)
+        if t["highRisk"] is None and r.get("customField"):
+            t["highRisk"] = _high_risk(r, data)
     tasks = list(by_guid.values())
     for t in tasks:
         t["reasons"], t["categories"], t["events"] = sorted(t["reasons"]), sorted(t["categories"]), sorted(t["events"])
@@ -922,7 +950,8 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
       tasks        g guid, id, n name, ty type, st status, o organisation, tr trade, l location,
                    ps/pe planned start/end, as/ae actual start/end, pw planned week, d planned
                    duration, rs reasons, cs reason categories, ss standard groups, ev events,
-                   dl Delay, dd DelayDays, dk delay kind, due/late the %Activity_Delayed flags
+                   dl Delay, dd DelayDays, dk delay kind, due/late the %Activity_Delayed flags,
+                   hr high-risk types (only on flagged activities; see data.highRisk)
       commitments  g guid, cw committed week, ce committed end, ok Custom_CommittedPPC, a auto, ln linked
       constraints  u UniqueID, t title, c category, p priority, ow owner, oo owner organisation, l location,
                    tr trade, cr creation, tg target, cm commitment, cp completion, s status,
@@ -930,12 +959,15 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
     tasks = []
     for t in model["tasks"]:
         d = derived[t["guid"]]
-        tasks.append({"g": t["guid"], "id": t["id"], "n": t["name"], "ty": t["type"], "st": t["status"],
-                      "o": t["organisation"], "tr": t["trade"], "l": t["location"],
-                      "ps": t["plannedStart"], "pe": t["plannedEnd"], "as": t["actualStart"], "ae": t["actualEnd"],
-                      "pw": t["plannedWeek"], "d": t["plannedDuration"],
-                      "rs": t["reasons"], "cs": t["categories"], "ss": _standard_groups(t["reasons"], data), "ev": t["events"],
-                      "dl": d["delay"], "dd": d["delayDays"], "dk": d["delayKind"], "due": d["dueForPct"], "late": d["delayedForPct"]})
+        row = {"g": t["guid"], "id": t["id"], "n": t["name"], "ty": t["type"], "st": t["status"],
+               "o": t["organisation"], "tr": t["trade"], "l": t["location"],
+               "ps": t["plannedStart"], "pe": t["plannedEnd"], "as": t["actualStart"], "ae": t["actualEnd"],
+               "pw": t["plannedWeek"], "d": t["plannedDuration"],
+               "rs": t["reasons"], "cs": t["categories"], "ss": _standard_groups(t["reasons"], data), "ev": t["events"],
+               "dl": d["delay"], "dd": d["delayDays"], "dk": d["delayKind"], "due": d["dueForPct"], "late": d["delayedForPct"]}
+        if t.get("highRisk"):
+            row["hr"] = t["highRisk"]
+        tasks.append(row)
     comms = None if model["commitments"] is None else [
         {"g": c["guid"], "cw": c["committedWeek"], "ce": c["committedEnd"], "ok": c["ppc"], "a": c["auto"], "ln": c["linked"]}
         for c in model["commitments"]]
@@ -987,7 +1019,8 @@ def compute(model: dict, project: dict, data: dict, today: date) -> dict:
     }
     return {
         "today": today.isoformat(),
-        "feeds": {"tasks": True, "committed": model["commitments"] is not None, "constraints": model["constraints"] is not None},
+        "feeds": {"tasks": True, "committed": model["commitments"] is not None, "constraints": model["constraints"] is not None,
+                  "highRisk": any(t.get("highRisk") for t in tasks)},
         "totals": totals(model, derived),
         "score": score,
         "health": {"label": score["status"] or "Unknown", "tone": score["tone"],

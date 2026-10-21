@@ -342,6 +342,16 @@ def selftest() -> int:
     check("synthetic: json serialisable", json.dumps(s) is not None)
     check("synthetic: invariants", not calc.invariants(s), "; ".join(calc.invariants(s)))
 
+    hr_rows = [{"guid": "H1", "taskType": "Construction", "customField": {"High Risk Activity": "Yes", "High Risk Activity Type": "Work at Height,Lifting ,  Vehicle  Movements"}},
+               {"guid": "H2", "taskType": "Construction", "customField": {"High Risk Activity": "Yes"}},
+               {"guid": "H3", "taskType": "Construction", "customField": {"High Risk Activity": "No", "High Risk Activity Type": "Lifting"}},
+               {"guid": "H4", "taskType": "Construction", "customField": None}]
+    hr = {t["guid"]: t["highRisk"] for t in calc.normalise({"tasks": hr_rows}, data)["tasks"]}
+    check("high risk: customField types split, trimmed, sorted", hr["H1"] == ["Lifting", "Vehicle Movements", "Work at Height"], str(hr["H1"]))
+    check("high risk: flagged without a type -> unspecified", hr["H2"] == [data["highRisk"]["unspecifiedLabel"]], str(hr["H2"]))
+    check("high risk: not flagged -> none", hr["H3"] is None and hr["H4"] is None)
+    check("high risk: no flagged task -> no page", s["feeds"]["highRisk"] is False)
+
     e = calc.compute(calc.normalise({"tasks": []}, data), {"key": "x"}, data, today)
     check("empty feed handled", e["totals"]["tasks"] == 0 and e["score"]["value"] is None and not calc.invariants(e))
     check("empty feed: no status, no reporting date", calc.project_status(calc.normalise({"tasks": []}, data)) is None

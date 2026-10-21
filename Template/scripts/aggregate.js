@@ -94,14 +94,17 @@
 
   function options(facts, data) {
     var UN = get(data, 'unassignedLabel', 'Unassigned');
-    var sets = { org: {}, trade: {}, loc: {}, cat: {}, ctrade: {}, cown: {} };
-    facts.tasks.forEach(function (t) { sets.org[t.o || UN] = 1; sets.trade[t.tr || UN] = 1; sets.loc[t.l || UN] = 1; });
+    var sets = { org: {}, trade: {}, loc: {}, cat: {}, ctrade: {}, cown: {}, rtype: {} };
+    facts.tasks.forEach(function (t) {
+      sets.org[t.o || UN] = 1; sets.trade[t.tr || UN] = 1; sets.loc[t.l || UN] = 1;
+      (t.hr || []).forEach(function (x) { sets.rtype[x] = 1; });
+    });
     (facts.constraints || []).forEach(function (r) {
       if (!r.g) { sets.org[r.oo || UN] = 1; sets.trade[r.tr || UN] = 1; sets.loc[r.l || UN] = 1; }
       sets.cat[r.c || NOCAT] = 1; sets.ctrade[r.tr || UN] = 1; sets.cown[r.ow || UN] = 1;
     });
     function sorted(m) { return Object.keys(m).sort(function (x, y) { var lx = x === UN || x === NOCAT, ly = y === UN || y === NOCAT; return lx !== ly ? (lx ? 1 : -1) : x.localeCompare(y); }); }
-    return { org: sorted(sets.org), trade: sorted(sets.trade), loc: sorted(sets.loc), cat: sorted(sets.cat), ctrade: sorted(sets.ctrade), cown: sorted(sets.cown) };
+    return { org: sorted(sets.org), trade: sorted(sets.trade), loc: sorted(sets.loc), cat: sorted(sets.cat), ctrade: sorted(sets.ctrade), cown: sorted(sets.cown), rtype: sorted(sets.rtype) };
   }
 
   function extent(facts) {
@@ -365,9 +368,12 @@
       constraints.notBeforeTarget = constraints.total - constraints.beforeTarget;
     }
 
+    var risk = riskView(facts, tasksA, F, data, today);
+
     return {
       range: { from: axis.from, to: axis.to }, l6w: { from: iFrom, to: iTo, valid: hasL6W }, today: today,
-      feeds: { committed: !!facts.commitments, constraints: !!facts.constraints },
+      feeds: { committed: !!facts.commitments, constraints: !!facts.constraints, highRisk: !!risk },
+      risk: risk,
       weeks: weeks, running: running, committed: committedL6W, committedAll: committedAll,
       commitmentRows: comms ? comms.length : null,
       activity: activity, breakdown: breakdown, tradePerformance: tp, orgPerformance: op, reasonsByTrade: rb, reasons: reasons,
@@ -384,6 +390,80 @@
         constraintLag: rag(constraints ? constraints.avgLagDays : null, tol.constraintLag),
         unlinked: rag(constraints ? constraints.unlinkedPct : null, tol.unlinked)
       }
+    };
+  }
+
+  /* ---------- high-risk activities (the High-risk page) ----------
+     Activities flagged high-risk in the task feed (t.hr: their types, from customField) that are
+     not complete (status.groups.complete) and whose planned start..end overlaps the range.
+     An in-progress activity (status.groups.inProgress) whose planned start has passed starts
+     today instead: its effective start is today and its end is at least today.
+     Organisation / trade / location come from the activity; F.rtype keeps activities with at
+     least one chosen type and shows only those types. An activity with several types counts once
+     in every total and once under each of its types. Returns null when nothing is flagged. */
+  function riskView(facts, tasksA, F, data, today) {
+    if (!facts.tasks.some(function (t) { return t.hr; })) return null;
+    var UN = get(data, 'unassignedLabel', 'Unassigned');
+    var G = get(data, 'status.groups', {}) || {};
+    var done = G.complete || ['Complete', 'Quality checked'], prog = G.inProgress || ['Started'], ready = G.ready || ['Ready', 'Forced Ready'];
+    var from = F.from || null, to = F.to || null, soonTo = addDays(today, 6);
+    var rows = [];
+    tasksA.forEach(function (t) {
+      if (!t.hr || done.indexOf(t.st) >= 0) return;
+      var types = F.rtype ? t.hr.filter(function (x) { return F.rtype[x]; }) : t.hr;
+      if (!types.length) return;
+      var ps = t.ps || t.pe, pe = t.pe || t.ps;
+      if (!ps) return;
+      var started = prog.indexOf(t.st) >= 0, moved = started && ps < today;
+      var es = moved ? today : ps, ee = pe < es ? es : pe;
+      if ((to && es > to) || (from && ee < from)) return;
+      rows.push({ t: t, types: types, es: es, ee: ee, moved: moved, started: started,
+                  state: started ? 'started' : (ready.indexOf(t.st) >= 0 ? 'ready' : 'notReady'),
+                  lateStart: !started && ps < today, overdue: pe < today,
+                  soon: !started && es >= today && es <= soonTo });
+    });
+    function n(pred) { return rows.filter(pred).length; }
+
+    /* per type: count and its trades; per trade: count per type (the heat map) */
+    var tmap = {}, trmap = {};
+    rows.forEach(function (r) {
+      var tr = r.t.tr || UN;
+      var row = trmap[tr] = trmap[tr] || { trade: tr, total: 0, cells: {} };
+      row.total++;
+      r.types.forEach(function (x) {
+        var ty = tmap[x] = tmap[x] || { type: x, count: 0, started: 0, lateStart: 0, overdue: 0, trades: {}, locations: {} };
+        ty.count++; if (r.started) ty.started++; if (r.lateStart) ty.lateStart++; if (r.overdue) ty.overdue++;
+        ty.trades[tr] = (ty.trades[tr] || 0) + 1;
+        var lo = r.t.l || UN; ty.locations[lo] = (ty.locations[lo] || 0) + 1;
+        row.cells[x] = (row.cells[x] || 0) + 1;
+      });
+    });
+    function ranked(m) { return Object.keys(m).map(function (k) { return { label: k, count: m[k] }; }).sort(function (a, b) { return b.count - a.count || a.label.localeCompare(b.label); }); }
+    var byType = Object.keys(tmap).map(function (k) {
+      var x = tmap[k]; x.trades = ranked(x.trades); x.locations = ranked(x.locations); return x;
+    }).sort(function (a, b) { return b.count - a.count || a.type.localeCompare(b.type); });
+    var byTrade = Object.keys(trmap).map(function (k) { return trmap[k]; })
+      .sort(function (a, b) { return b.total - a.total || (a.trade === UN) - (b.trade === UN) || a.trade.localeCompare(b.trade); });
+    var maxCell = 0;
+    byTrade.forEach(function (r) { for (var k in r.cells) if (r.cells[k] > maxCell) maxCell = r.cells[k]; });
+
+    /* look-ahead: activities active in each week of the range, by readiness */
+    var lo = from, hi = to;
+    rows.forEach(function (r) { if (!from && (!lo || r.es < lo)) lo = r.es; if (!to && (!hi || r.ee > hi)) hi = r.ee; });
+    var weeks = lo && hi ? weekSpans(lo, hi).map(function (s) {
+      var act = rows.filter(function (r) { return r.es <= s.end && r.ee >= s.start; });
+      return { week: s.week, start: s.start, end: s.end, isNow: today >= s.start && today <= s.end, total: act.length,
+               started: act.filter(function (r) { return r.state === 'started'; }).length,
+               ready: act.filter(function (r) { return r.state === 'ready'; }).length,
+               notReady: act.filter(function (r) { return r.state === 'notReady'; }).length };
+    }) : [];
+
+    return {
+      rows: rows, total: rows.length, started: n(function (r) { return r.started; }), moved: n(function (r) { return r.moved; }),
+      lateStart: n(function (r) { return r.lateStart; }), overdue: n(function (r) { return r.overdue; }),
+      soon: n(function (r) { return r.soon; }), multi: n(function (r) { return r.types.length > 1; }),
+      trades: byTrade.length, byType: byType, byTrade: byTrade, maxCell: maxCell, weeks: weeks,
+      flagged: facts.tasks.filter(function (t) { return t.hr; }).length
     };
   }
 
@@ -495,6 +575,25 @@
                  overdueDays: r.tg && r.tg < today && !r.cp ? daysBetween(r.tg, today) : null,
                  lagDays: r.cp && r.tg ? daysBetween(r.tg, r.cp) : null };
       }).sort(function (x, y) { return ((y.overdueDays || -1) - (x.overdueDays || -1)) || (x.target || '').localeCompare(y.target || '') || (x.title || '').localeCompare(y.title || ''); });
+    }
+
+    if (spec.type === 'risk') {
+      /* high-risk activities (V.risk.rows), optional riskType, trade, state, week (start, end) and
+         spec.pred: all | started | moved | lateStart | overdue | soon | multi */
+      var RQ = {
+        all: function () { return true; },
+        started: function (r) { return r.started; }, moved: function (r) { return r.moved; },
+        lateStart: function (r) { return r.lateStart; }, overdue: function (r) { return r.overdue; },
+        soon: function (r) { return r.soon; }, multi: function (r) { return r.types.length > 1; }
+      }[spec.pred || 'all'];
+      return ((V.risk && V.risk.rows) || []).filter(function (r) {
+        return RQ(r) && (!spec.riskType || r.types.indexOf(spec.riskType) >= 0) && (!spec.trade || (r.t.tr || UN) === spec.trade)
+          && (!spec.state || r.state === spec.state) && (!spec.start || (r.es <= spec.end && r.ee >= spec.start));
+      }).map(function (r) {
+        var a = act(r.t, null);
+        a.riskTypes = r.types; a.effStart = r.es; a.effEnd = r.ee; a.moved = r.moved; a.lateStart = r.lateStart; a.overdue = r.overdue;
+        return a;
+      }).sort(function (x, y) { return (x.effStart || '').localeCompare(y.effStart || '') || (x.trade || '').localeCompare(y.trade || '') || byName(x, y); });
     }
     return [];
   }

@@ -157,6 +157,19 @@
     }).observe(svg);
   })();
 
+  var riskWeeksSpec = null;  /* the high-risk look-ahead chart's last spec, redrawn when its width changes (the tab starts hidden) */
+  (function watchRiskWeeks() {
+    var svg = document.getElementById('riskWeeksChart');
+    if (!svg || !window.ResizeObserver) return;
+    var last = 0, pending = false;
+    new ResizeObserver(function () {
+      var w = Math.round(svg.getBoundingClientRect().width);
+      if (!riskWeeksSpec || !w || Math.abs(w - last) < 8 || pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; last = w; C.comboChart(svg, riskWeeksSpec); });
+    }).observe(svg);
+  })();
+
   var consWeeksSpec = null;  /* the target-week chart's last spec, redrawn when its width changes (the tab starts hidden) */
   (function watchConsWeeks() {
     var svg = document.getElementById('consWeeksChart');
@@ -216,6 +229,37 @@
     return td;
   }
   function actSub(r) { return [r.id ? '#' + r.id : null, r.location].filter(Boolean).join(' · '); }
+
+  /* ---------- high-risk activity type icons: matched on the type's words, a warning sign otherwise ---------- */
+  var RISK_ICONS = [
+    [/height|hauteur|ladder|scaffold|echafaud|nacelle|mewp/i, '<path d="M5 1.8v12.4M11 1.8v12.4"/><path d="M5 4.6h6M5 7.6h6M5 10.6h6"/>'],
+    [/lift|crane|levage|grue|hoist/i, '<path d="M3 14V2.5h9.5"/><path d="M3 5.5 6 2.5"/><path d="M11 2.5v3.5"/><path d="M11 6a2 2 0 1 1-2 2"/>'],
+    [/hot|weld|soud|flame|fire|feu|cut/i, '<path d="M8 14.2c-2.6 0-4.2-1.8-4.2-4 0-2.6 2.1-3.8 2.6-6.4 1.5 1 2.1 2.4 2.1 3.6.7-.4 1.3-1.2 1.4-2.1 1.4 1.3 2.3 2.9 2.3 4.9 0 2.2-1.6 4-4.2 4Z"/>'],
+    [/electr|energi|elec|live|consign/i, '<path d="M9.2 1.5 3.6 9h4.2l-1 5.5L12.4 7H8.2z"/>'],
+    [/excavat|trench|terrass|dig|ground|fouille/i, '<path d="M10.2 2.2 13.8 5.8"/><path d="M12 4 7.2 8.8"/><path d="M7.8 8.2 4.4 11.6a2.4 2.4 0 0 1-3-.1 2.4 2.4 0 0 1-.1-3L4.7 5z"/>'],
+    [/chemic|hazard|substance|coshh|toxic|produit/i, '<path d="M6 1.8h4"/><path d="M6.6 1.8v4.1L2.9 12.3A1.2 1.2 0 0 0 4 14.2h8a1.2 1.2 0 0 0 1.1-1.9L9.4 5.9V1.8"/><path d="M4.6 10h6.8"/>'],
+    [/material|handling|manutention|load|charge/i, '<path d="M2.2 5 8 2.2 13.8 5v6.2L8 14 2.2 11.2z"/><path d="M2.2 5 8 7.8 13.8 5"/><path d="M8 7.8V14"/>'],
+    [/vehicle|plant|traffic|engin|machine|movement/i, '<path d="M1.5 3.8h8.2v6.8H1.5z"/><path d="M9.7 6.2h2.8l2 2.3v2.1H9.7"/><circle cx="4.4" cy="11.8" r="1.4"/><circle cx="11.6" cy="11.8" r="1.4"/>'],
+    [/noise|bruit|sound|vibrat/i, '<path d="M2.2 6h2.6L8.4 3v10L4.8 10H2.2z"/><path d="M10.8 5.6a3.4 3.4 0 0 1 0 4.8"/><path d="M12.7 3.8a6 6 0 0 1 0 8.4"/>'],
+    [/confined|confin|tank|manhole|cuve/i, '<ellipse cx="8" cy="5" rx="5.6" ry="2.2"/><path d="M2.4 5v6c0 1.2 2.5 2.2 5.6 2.2s5.6-1 5.6-2.2V5"/>'],
+    [/demoli|break|hammer/i, '<path d="M9.2 2.4 13.6 6.8"/><path d="M7.6 4 12 8.4l-1.6 1.6L6 5.6z"/><path d="M8.3 7.7 2.6 13.4"/>'],
+    [/not recorded|unspecified/i, '<circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4"/><path d="M8 11.4v.1"/>']
+  ];
+  var RISK_DEFAULT_ICON = '<path d="M8 1.8 14.6 13.5H1.4Z"/><path d="M8 6.2v3.3"/><path d="M8 11.6v.1"/>';
+  function riskIcon(type, small) {
+    var body = RISK_DEFAULT_ICON;
+    for (var i = 0; i < RISK_ICONS.length; i++) if (RISK_ICONS[i][0].test(type || '')) { body = RISK_ICONS[i][1]; break; }
+    var s = el('span', 'risk-ic' + (small ? ' sm' : ''));
+    s.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
+    s.title = type;
+    return s;
+  }
+  function riskTypesCell(types) {
+    var td = el('td'), w = el('div', 'risk-cell');
+    (types || []).forEach(function (x) { w.appendChild(riskIcon(x, true)); });
+    w.appendChild(el('span', 'cell-note', (types || []).join(', ')));
+    td.appendChild(w); return td;
+  }
   var COLS = {
     commits: [
       { h: 'Activity', cell: function (r) { return nameCell(r.name, actSub(r)); } },
@@ -243,6 +287,22 @@
       { h: 'Status', cell: function (r) { return statusCell(r.status); } },
       { h: 'Reasons', cell: reasonsCell }
     ],
+    risk: [
+      { h: 'Activity', cell: function (r) { return nameCell(r.name, actSub(r)); } },
+      { h: 'Risk type', cell: function (r) { return riskTypesCell(r.riskTypes); } },
+      { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
+      { h: 'Organisation', cell: function (r) { return textCell(r.organisation); } },
+      { h: 'Start', num: true, cell: function (r) {
+          var td = dateCell(r.effStart);
+          if (r.moved) { td.appendChild(el('div', 'cell-note', 'planned ' + C.fmtDate(r.plannedStart, true) + ', in progress')); td.title = 'Started, planned start passed: shown from today'; }
+          else if (r.lateStart) { td.appendChild(el('div', 'cell-note tone-text-bad', 'should have started')); }
+          return td; } },
+      { h: 'Planned end', num: true, cell: function (r) {
+          var td = dateCell(r.plannedEnd);
+          if (r.overdue) td.appendChild(el('div', 'cell-note tone-text-bad', 'past planned finish'));
+          return td; } },
+      { h: 'Status', cell: function (r) { return statusCell(r.status); } }
+    ],
     constraints: [
       { h: 'Constraint', cell: function (r) { return nameCell(r.title, r.activities.length ? r.activities.join(' · ') : 'not linked to an activity'); } },
       { h: 'Category', cell: function (r) { return textCell(r.category); } },
@@ -267,12 +327,16 @@
                ['Planned duration', 'duration'], ['Delay days', 'delayDays'], ['Delay type', 'delayKind'],
                ['Reason categories', function (r) { return r.categories.join('; '); }], ['Reasons', function (r) { return r.reasons.join('; '); }],
                ['Events', function (r) { return r.events.join('; '); }]],
+    risk: [['Activity ID', 'id'], ['Activity', 'name'], ['High-risk types', function (r) { return r.riskTypes.join('; '); }], ['Type', 'type'], ['Trade', 'trade'],
+           ['Organisation', 'organisation'], ['Location', 'location'], ['Status', 'status'], ['Planned start', 'plannedStart'], ['Start (in progress from today)', 'effStart'],
+           ['Planned end', 'plannedEnd'], ['Actual start', 'actualStart'],
+           ['Should have started', function (r) { return r.lateStart ? 'Yes' : ''; }], ['Past planned finish', function (r) { return r.overdue ? 'Yes' : ''; }]],
     constraint: [['Constraint ID', 'id'], ['Constraint', 'title'], ['Category', 'category'], ['Priority', 'priority'], ['Owner', 'owner'], ['Owner organisation', 'ownerOrganisation'], ['Trade', 'trade'],
                  ['Location', 'location'], ['Status', 'status'], ['Created', 'created'], ['Target', 'target'], ['Committed', 'commitment'], ['Completed', 'completion'],
                  ['Overdue days', 'overdueDays'], ['Lag days', 'lagDays'], ['Linked activities', function (r) { return r.activities.join('; '); }]]
   };
   function rowText(r) {
-    return [r.name, r.id, r.title, r.trade, r.organisation, r.location, r.status, r.category, r.owner, (r.activities || []).join(' '), (r.categories || []).join(' ')]
+    return [r.name, r.id, r.title, r.trade, r.organisation, r.location, r.status, r.category, r.owner, (r.activities || []).join(' '), (r.categories || []).join(' '), (r.riskTypes || []).join(' ')]
       .filter(Boolean).join(' ').toLowerCase();
   }
   function drawerRows() {
@@ -303,8 +367,9 @@
     C.hideTip();
     var rows = A.records(CUR.V, spec, CUR.data);
     var kind = spec.type === 'constraints' ? 'constraint' : 'activity';
+    var isRisk = spec.type === 'risk';
     DR = { rows: rows, kind: kind, title: title, opener: opener || document.activeElement,
-           cols: COLS[spec.type === 'constraints' ? 'constraints' : (spec.type === 'tasks' ? 'tasks' : 'commits')], csv: CSV[kind] };
+           cols: COLS[isRisk ? 'risk' : spec.type === 'constraints' ? 'constraints' : (spec.type === 'tasks' ? 'tasks' : 'commits')], csv: CSV[isRisk ? 'risk' : kind] };
     setText('drawerEyebrow', kind === 'constraint' ? 'Constraints' : 'Activities');
     setText('drawerTitle', title);
     setText('drawerSub', sub || '');
@@ -969,9 +1034,11 @@
     return { set: function (s) { state = s ? Object.assign({}, s) : null; label(); if (!pop.hidden) draw(); } };
   }
 
-  /* slicer keys: Performance uses org / trade / loc (from the activity); Constraints uses cat / ctrade / cown (from the constraint) */
-  var FILTER_KEYS = ['org', 'trade', 'loc', 'cat', 'ctrade', 'cown'];
-  var PAGE_KEYS = { performance: ['org', 'trade', 'loc'], constraints: ['cat', 'ctrade', 'cown'] };
+  /* slicer keys: Performance uses org / trade / loc (from the activity); Constraints uses cat / ctrade / cown (from the constraint);
+     High-risk uses the risk type and the activity's org / trade / loc */
+  var FILTER_KEYS = ['org', 'trade', 'loc', 'cat', 'ctrade', 'cown', 'rtype'];
+  var PAGE_KEYS = { performance: ['org', 'trade', 'loc'], constraints: ['cat', 'ctrade', 'cown'], risk: ['rtype', 'trade', 'loc', 'org'] };
+  var PAGES = { performance: 'pagePerformance', constraints: 'pageConstraints', risk: 'pageRisk' };
 
   /* ---------- filter state in the URL hash ---------- */
   function parseHash(opts) {
@@ -982,7 +1049,7 @@
       var i = kv.indexOf('='); if (i < 0) return;
       var k = kv.slice(0, i), v = decodeURIComponent(kv.slice(i + 1));
       if ((k === 'from' || k === 'to') && /^\d{4}-\d{2}-\d{2}$/.test(v)) out[k] = v;
-      if (k === 'page' && (v === 'performance' || v === 'constraints')) out.page = v;
+      if (k === 'page' && PAGES[v]) out.page = v;
       if (FILTER_KEYS.indexOf(k) >= 0) {
         var m = {}; v.split('|').forEach(function (x) { if (opts[k].indexOf(x) >= 0) m[x] = 1; });
         if (Object.keys(m).length) out[k] = m;
@@ -995,7 +1062,8 @@
     if (S.from !== defaults.from) parts.push('from=' + S.from);
     if (S.to !== defaults.to) parts.push('to=' + S.to);
     FILTER_KEYS.forEach(function (k) { if (S[k]) parts.push(k + '=' + encodeURIComponent(Object.keys(S[k]).join('|'))); });
-    if (S.page && S.page !== defaults.page) parts.push('page=' + S.page);
+    /* defaults are the page's own (its default range); the page itself is written unless it is the first one */
+    if (S.page && S.page !== 'performance') parts.push('page=' + S.page);
     var next = parts.length ? '#' + parts.join('&') : location.pathname + location.search;
     try { history.replaceState(null, '', next); } catch (e) { /* file:// in some browsers */ }
   }
@@ -1028,11 +1096,20 @@
 
     /* ---- slicers ---- */
     var FX = M.facts, opts = A.options(FX, data), ext = A.extent(FX);
-    var defaults = { from: FX.trend.from, to: FX.trend.to, org: null, trade: null, loc: null, cat: null, ctrade: null, cown: null, page: 'performance' };
+    var defaults = { from: FX.trend.from, to: FX.trend.to, org: null, trade: null, loc: null, cat: null, ctrade: null, cown: null, rtype: null, page: 'performance' };
+    /* the High-risk page looks ahead: from this week's Monday, data.highRisk.defaultWeeks whole weeks */
+    var hasRisk = FX.tasks.some(function (t) { return t.hr; });
+    var riskMon = A.mondayOf(FX.today), riskWeeks = Number((data.highRisk || {}).defaultWeeks) || 6;
+    var PAGE_DEFAULTS = {
+      performance: Object.assign({}, defaults),
+      constraints: Object.assign({}, defaults, { page: 'constraints' }),
+      risk: Object.assign({}, defaults, { page: 'risk', from: riskMon, to: A.addDays(riskMon, 7 * riskWeeks - 1) })
+    };
+    function defaultsOf(page) { return PAGE_DEFAULTS[page] || defaults; }
     /* each page keeps its own slicers: the controls show the active page's, and changing them never touches the other page.
        A link carries the filters of the page it opens on. */
-    var fromHash = parseHash(opts), startPage = fromHash.page || 'performance';
-    var FS = { performance: Object.assign({}, defaults, { page: 'performance' }), constraints: Object.assign({}, defaults, { page: 'constraints' }) };
+    var fromHash = parseHash(opts), startPage = fromHash.page === 'risk' && !hasRisk ? 'performance' : (fromHash.page || 'performance');
+    var FS = { performance: Object.assign({}, PAGE_DEFAULTS.performance), constraints: Object.assign({}, PAGE_DEFAULTS.constraints), risk: Object.assign({}, PAGE_DEFAULTS.risk) };
     Object.assign(FS[startPage], fromHash, { page: startPage });
     var S = FS[startPage];
     /* reason-category colour slots are fixed once per page from the unfiltered view, so a filter never repaints a category */
@@ -1056,7 +1133,8 @@
       loc: multiSelect(document.getElementById('fLoc'), 'location', opts.loc, S.loc, function (s) { S.loc = s; apply(); }, data.locationTree),
       cat: multiSelect(document.getElementById('fCat'), 'category', opts.cat, S.cat, function (s) { S.cat = s; apply(); }),
       ctrade: multiSelect(document.getElementById('fCTrade'), 'trade', opts.ctrade, S.ctrade, function (s) { S.ctrade = s; apply(); }),
-      cown: multiSelect(document.getElementById('fCOwn'), 'owner', opts.cown, S.cown, function (s) { S.cown = s; apply(); })
+      cown: multiSelect(document.getElementById('fCOwn'), 'owner', opts.cown, S.cown, function (s) { S.cown = s; apply(); }),
+      rtype: multiSelect(document.getElementById('fRType'), 'risk type', opts.rtype, S.rtype, function (s) { S.rtype = s; apply(); })
     };
     /* export: the PPC review for the current range and filters, as a standalone report */
     var exportBtn = document.getElementById('fExport');
@@ -1068,25 +1146,26 @@
     });
     /* Reset clears the active page's filters only */
     function resetFilters() {
-      S = FS[S.page] = Object.assign({}, defaults, { page: S.page }); syncControls(); apply();
+      S = FS[S.page] = Object.assign({}, defaultsOf(S.page)); syncControls(); apply();
     }
     function syncControls() { FILTER_KEYS.forEach(function (k) { pickers[k].set(S[k]); }); dayRange.set(S.from, S.to); }
     document.getElementById('fReset').addEventListener('click', resetFilters);
 
-    /* ---- page tabs: Performance | Constraints, each with its own slicers ---- */
-    var tabs = [document.getElementById('tabPerformance'), document.getElementById('tabConstraints')];
+    /* ---- page tabs: Performance | Constraints | High-risk (only when the feed flags high-risk activities), each with its own slicers ---- */
+    document.getElementById('tabRisk').hidden = !hasRisk;
+    var tabs = ['tabPerformance', 'tabConstraints', 'tabRisk'].map(function (id) { return document.getElementById(id); }).filter(function (t) { return !t.hidden; });
     function showPage(page, focus) {
       S = FS[page];
       /* each page shows its own slicers */
-      document.querySelectorAll('#filters [data-for]').forEach(function (n) { n.hidden = n.getAttribute('data-for') !== page; });
+      document.querySelectorAll('#filters [data-for]').forEach(function (n) { n.hidden = n.getAttribute('data-for').split(' ').indexOf(page) < 0; });
       tabs.forEach(function (t) {
         var on = t.getAttribute('data-page') === page;
         t.setAttribute('aria-selected', on ? 'true' : 'false'); t.tabIndex = on ? 0 : -1;
         document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
         if (on && focus) t.focus();
       });
-      writeHash(S, defaults);
-      var nav = document.getElementById('controlBar'), panel = document.getElementById(page === 'constraints' ? 'pageConstraints' : 'pagePerformance');
+      writeHash(S, defaultsOf(page));
+      var nav = document.getElementById('controlBar'), panel = document.getElementById(PAGES[page]);
       if (nav && panel) {
         var stuck = nav.getBoundingClientRect().bottom;
         var top = panel.getBoundingClientRect().top;
@@ -1111,7 +1190,8 @@
     showPage(S.page || 'performance');
 
     function activeFilters() {
-      return (S.from !== defaults.from || S.to !== defaults.to ? 1 : 0) + PAGE_KEYS[S.page].filter(function (k) { return S[k]; }).length;
+      var d = defaultsOf(S.page);
+      return (S.from !== d.from || S.to !== d.to ? 1 : 0) + PAGE_KEYS[S.page].filter(function (k) { return S[k]; }).length;
     }
     function apply() {
       var nAct = activeFilters(), reset = document.getElementById('fReset');
@@ -1121,12 +1201,164 @@
       if (nAct) reset.appendChild(el('span', 'reset-n', String(nAct)));
       reset.title = nAct ? nAct + (nAct === 1 ? ' filter differs' : ' filters differ') + ' from the default view' : 'Showing the default view';
       dayRange.set(S.from, S.to);
-      writeHash(S, defaults);
-      /* the Constraints tab badge and the panel's open-constraint count always follow the Constraints page's filters */
+      writeHash(S, defaultsOf(S.page));
+      /* the Constraints and High-risk tab badges and the panel's open-constraint count always follow their own page's filters */
       var V = A.run(FX, S, data), VC = S.page === 'constraints' ? V : A.run(FX, FS.constraints, data);
-      renderView(V, S, { opts: opts, catCls: catCls, catFold: catFold, noneLabel: noneLabel, data: data, M: M, consCN: VC.constraints });
+      var VR = !hasRisk ? null : S.page === 'risk' ? V : A.run(FX, FS.risk, data);
+      renderView(V, S, { opts: opts, catCls: catCls, catFold: catFold, noneLabel: noneLabel, data: data, M: M, consCN: VC.constraints, risk: VR ? VR.risk : null });
     }
     apply();
+  }
+
+  /* ========================================================== High-risk page */
+  var riskHeatAll = false; /* the heat map shows the 12 trades with the most high-risk activities until expanded */
+  var RISK_HEAT_ROWS = 12;
+  function renderRisk(V, S, rangeText) {
+    var R = V.risk, UN = V.sets.UN;
+    function rl(spec, title, sub) { spec.type = 'risk'; return lister(spec, title, sub || rangeText); }
+    setText('riskDesc', plural(R.total, 'open high-risk activity', 'open high-risk activities') + ' planned in ' + rangeText
+      + ' · ' + C.fmtNum(R.flagged) + ' flagged in the project · complete and quality-checked activities are left out');
+
+    /* ---- tiles ---- */
+    var rk = document.getElementById('riskKpis'); rk.innerHTML = '';
+    [
+      { label: 'High-risk activities', value: C.fmtNum(R.total), sub: 'Open, planned in the range',
+        pick: R.total ? rl({}, 'High-risk activities') : null },
+      { label: 'In progress', value: C.fmtNum(R.started), sub: R.moved ? C.fmtNum(R.moved) + ' started past their planned start, counted from today' : 'Started, not yet complete',
+        pick: R.started ? rl({ pred: 'started' }, 'High-risk activities in progress') : null },
+      { label: 'Starting in 7 days', value: C.fmtNum(R.soon), sub: 'Not started, planned start ' + fmtRange(V.today, A.addDays(V.today, 6)),
+        pick: R.soon ? rl({ pred: 'soon' }, 'High-risk activities starting in the next 7 days', fmtRange(V.today, A.addDays(V.today, 6))) : null },
+      { label: 'Should have started', value: C.fmtNum(R.lateStart), tone: R.lateStart ? 'bad' : 'good', toneLabel: R.lateStart ? 'Late' : 'None late', sub: 'Not started, planned start before today',
+        pick: R.lateStart ? rl({ pred: 'lateStart' }, 'High-risk activities that should have started') : null },
+      { label: 'Past planned finish', value: C.fmtNum(R.overdue), tone: R.overdue ? 'bad' : 'good', toneLabel: R.overdue ? 'Overdue' : 'None overdue', sub: 'Open, planned end before today',
+        pick: R.overdue ? rl({ pred: 'overdue' }, 'High-risk activities past their planned finish') : null },
+      { label: 'Multiple risk types', value: C.fmtNum(R.multi), sub: 'Combined hazards on one activity',
+        pick: R.multi ? rl({ pred: 'multi' }, 'High-risk activities with several risk types') : null }
+    ].forEach(function (d) { rk.appendChild(kpiTile(d)); });
+
+    /* ---- heat map: trade x risk type ---- */
+    var types = R.byType.map(function (x) { return x.type; });
+    var host = document.getElementById('riskHeat'); host.innerHTML = '';
+    var moreBtn = document.getElementById('riskHeatMore');
+    if (!R.total) {
+      host.appendChild(el('p', 'empty', 'No open high-risk activities are planned in the selected range.'));
+      moreBtn.hidden = true; document.getElementById('riskHeatKey').innerHTML = '';
+    } else {
+      var tbl = el('table', 'heat'), thead = el('thead'), hr = el('tr');
+      hr.appendChild(el('th', null, ''));
+      R.byType.forEach(function (x) {
+        var th = el('th'), box = el('div', 'ht-type');
+        box.appendChild(riskIcon(x.type)); box.appendChild(el('span', null, x.type));
+        makePick(box, rl({ riskType: x.type }, x.type + ': high-risk activities'), false);
+        box.title = x.type + ': ' + plural(x.count, 'activity', 'activities') + ' · click to list them';
+        th.appendChild(box); hr.appendChild(th);
+      });
+      hr.appendChild(el('th', 'num', 'Activities'));
+      thead.appendChild(hr); tbl.appendChild(thead);
+      var tb = el('tbody'), shown = riskHeatAll ? R.byTrade : R.byTrade.slice(0, RISK_HEAT_ROWS);
+      shown.forEach(function (row) {
+        var tr = el('tr'), name = el('th', 'ht-trade', row.trade);
+        name.title = row.trade + ': ' + plural(row.total, 'activity', 'activities') + ' · click to list them';
+        makePick(name, rl({ trade: row.trade }, row.trade + ': high-risk activities'), false);
+        tr.appendChild(name);
+        types.forEach(function (ty) {
+          var v = row.cells[ty] || 0, td = el('td', 'hc' + (v ? '' : ' zero'), v ? C.fmtNum(v) : '·');
+          if (v) {
+            var p = R.maxCell ? v / R.maxCell : 0;
+            td.style.background = 'color-mix(in srgb, var(--risk) ' + Math.round(14 + 80 * p) + '%, var(--card))';
+            if (p > 0.55) td.classList.add('hot');
+            td.title = row.trade + ' · ' + ty + ': ' + plural(v, 'activity', 'activities');
+            makePick(td, rl({ trade: row.trade, riskType: ty }, row.trade + ' · ' + ty), false);
+          }
+          tr.appendChild(td);
+        });
+        var tot = el('td', 'hc tot', C.fmtNum(row.total));
+        makePick(tot, rl({ trade: row.trade }, row.trade + ': high-risk activities'), false);
+        tr.appendChild(tot);
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb);
+      var tf = el('tfoot'), fr = el('tr');
+      fr.appendChild(el('th', null, 'All trades'));
+      R.byType.forEach(function (x) { fr.appendChild(el('td', 'hc', C.fmtNum(x.count))); });
+      fr.appendChild(el('td', 'hc', C.fmtNum(R.total)));
+      tf.appendChild(fr); tbl.appendChild(tf);
+      host.appendChild(tbl);
+      moreBtn.hidden = R.byTrade.length <= RISK_HEAT_ROWS;
+      moreBtn.textContent = riskHeatAll ? 'Show the top ' + RISK_HEAT_ROWS + ' trades' : 'Show all ' + C.fmtNum(R.byTrade.length) + ' trades';
+      moreBtn.onclick = function () { riskHeatAll = !riskHeatAll; renderRisk(V, S, rangeText); };
+      var key = document.getElementById('riskHeatKey'); key.innerHTML = '';
+      key.appendChild(el('span', null, '1')); key.appendChild(el('span', 'heat-ramp')); key.appendChild(el('span', null, C.fmtNum(R.maxCell)));
+      key.appendChild(el('span', null, '· activities per trade and type. An activity with several types counts under each.'));
+    }
+    setText('riskHeatDesc', R.total ? plural(R.trades, 'trade') + ' × ' + plural(types.length, 'risk type') + (R.byTrade.length > RISK_HEAT_ROWS && !riskHeatAll ? ' · the ' + RISK_HEAT_ROWS + ' trades with the most shown' : '') : '');
+    ensureListBtn('riskHeatDesc', R.total ? rl({}, 'High-risk activities') : null);
+
+    /* ---- one card per risk type: count, flags, top trades and locations ---- */
+    var tg = document.getElementById('riskTypes'); tg.innerHTML = '';
+    setText('riskTypesDesc', R.byType.length ? 'Open activities per type, with the trades and locations carrying them' : '');
+    if (!R.byType.length) tg.appendChild(el('p', 'empty', 'No high-risk types in the selected range.'));
+    R.byType.forEach(function (x) {
+      var card = el('div', 'card rt-card'), head = el('div', 'rt-head');
+      head.appendChild(riskIcon(x.type)); head.appendChild(el('div', 'rt-name', x.type)); head.appendChild(el('div', 'rt-n', C.fmtNum(x.count)));
+      makePick(head, rl({ riskType: x.type }, x.type + ': high-risk activities'));
+      card.appendChild(head);
+      var flags = el('div', 'rt-flags');
+      if (x.started) flags.appendChild(chip('In progress', x.started, 'r-started', null, rl({ riskType: x.type, pred: 'started' }, x.type + ': in progress')));
+      if (x.lateStart) flags.appendChild(chip('Should have started', x.lateStart, 's-fail', null, rl({ riskType: x.type, pred: 'lateStart' }, x.type + ': should have started')));
+      if (x.overdue) flags.appendChild(chip('Past finish', x.overdue, 's-fail', null, rl({ riskType: x.type, pred: 'overdue' }, x.type + ': past planned finish')));
+      if (!flags.children.length) flags.appendChild(chip('All planned ahead', null, 's-ok'));
+      card.appendChild(flags);
+      function rows(cap, list, specOf) {
+        var box = el('div', 'rt-rows'); box.appendChild(el('div', 'rt-cap', cap));
+        list.slice(0, 3).forEach(function (g) {
+          var r = el('div', 'rt-row'), bar = el('div', 'rt-bar'), fill = el('span');
+          fill.style.width = Math.max(4, Math.round(100 * g.count / x.count)) + '%'; bar.appendChild(fill);
+          var l = el('span', 'rt-l', g.label); l.title = g.label;
+          r.appendChild(l); r.appendChild(bar); r.appendChild(el('span', 'rt-c', C.fmtNum(g.count)));
+          if (specOf) makePick(r, specOf(g), false);
+          box.appendChild(r);
+        });
+        if (list.length > 3) box.appendChild(el('div', 'cell-note', '+ ' + plural(list.length - 3, cap === 'Trades' ? 'more trade' : 'more location')));
+        card.appendChild(box);
+      }
+      rows('Trades', x.trades, function (g) { return rl({ riskType: x.type, trade: g.label }, g.label + ' · ' + x.type); });
+      rows('Locations', x.locations, null);
+      tg.appendChild(card);
+    });
+
+    /* ---- look-ahead: active per week by readiness ---- */
+    var W = R.weeks, STATES = [['started', 'In progress', 'r-started'], ['ready', 'Ready', 'r-ready'], ['notReady', 'Not ready', 'r-notready']];
+    setText('riskWeeksDesc', W.length ? 'Open high-risk activities active each week (planned start to end), by status today · the current week shaded' : '');
+    riskWeeksSpec = {
+      labels: W.map(function (w) { return weekLabel(w.week); }), band: W.map(function (w) { return w.isNow; }),
+      stacked: true, showLabels: true, axisTitles: ['Activities', ''], emptyText: 'No open high-risk activities in the selected range.',
+      columns: STATES.map(function (k) {
+        return { name: k[1], cls: k[2], values: W.map(function (w) { return w[k[0]]; }),
+                 tips: W.map(function (w) { return weekLabel(w.week) + ', ' + fmtRange(w.start, w.end) + ': ' + C.fmtNum(w[k[0]]) + ' ' + k[1].toLowerCase() + ' of ' + C.fmtNum(w.total) + ' active'; }),
+                 picks: W.map(function (w) { return w[k[0]] ? rl({ state: k[0], start: w.start, end: w.end }, 'High-risk activities active ' + weekLabel(w.week) + ', ' + k[1].toLowerCase(), fmtRange(w.start, w.end)) : null; }) };
+      })
+    };
+    C.comboChart(document.getElementById('riskWeeksChart'), riskWeeksSpec);
+    var lg = document.getElementById('riskWeeksLegend'); lg.innerHTML = '';
+    STATES.forEach(function (k) { lg.appendChild(chip(k[1], R.rows.filter(function (r) { return r.state === k[0]; }).length, k[2])); });
+    ensureListBtn('riskWeeksDesc', R.total ? rl({}, 'High-risk activities by week') : null);
+
+    /* ---- next to start: not started, by effective start; late starts first ---- */
+    var next = R.rows.filter(function (r) { return !r.started; }).sort(function (a, b) { return a.es.localeCompare(b.es) || (a.t.n || '').localeCompare(b.t.n || ''); });
+    var NB = document.getElementById('riskNextBody'); NB.innerHTML = '';
+    setText('riskNextDesc', next.length ? plural(next.length, 'activity', 'activities') + ' not started' + (next.length > 8 ? ', the first 8 by planned start' : '') : 'Nothing waiting to start');
+    ensureListBtn('riskNextDesc', next.length ? rl({ pred: 'all' }, 'High-risk activities by start date') : null);
+    if (!next.length) emptyRow(NB, 5, 'Every open high-risk activity in the range has started.');
+    next.slice(0, 8).forEach(function (r) {
+      var tr = el('tr');
+      tr.appendChild(nameCell(r.t.n, [r.t.id ? '#' + r.t.id : null, r.t.l].filter(Boolean).join(' · ')));
+      var rc = el('td'), w = el('div', 'risk-cell'); r.types.forEach(function (x) { w.appendChild(riskIcon(x, true)); }); rc.appendChild(w); tr.appendChild(rc);
+      tr.appendChild(textCell(r.t.tr || UN));
+      var sd = dateCell(r.es); if (r.lateStart) sd.appendChild(el('div', 'cell-note tone-text-bad', 'should have started')); tr.appendChild(sd);
+      tr.appendChild(statusCell(r.t.st));
+      NB.appendChild(tr);
+    });
   }
 
   function renderView(V, S, ctx) {
@@ -1144,12 +1376,21 @@
     var CC = ctx.consCN;
     setText('hpOpenCons', CC ? C.fmtNum(CC.open) : '—');
     var dimList = S.page === 'constraints' ? [dimText('cat', 'category'), dimText('ctrade', 'trade'), dimText('cown', 'owner')]
-                                           : [dimText('org', 'organisation'), dimText('trade', 'trade'), dimText('loc', 'location')];
+                : S.page === 'risk' ? [dimText('rtype', 'risk type'), dimText('trade', 'trade'), dimText('loc', 'location'), dimText('org', 'organisation')]
+                : [dimText('org', 'organisation'), dimText('trade', 'trade'), dimText('loc', 'location')];
     var dims = dimList.filter(function (t) { return t.indexOf('all ') !== 0; }).map(function (t) { return ' · ' + t; }).join('');
     setText('fSummary', (S.page === 'constraints'
       ? 'Constraints filters · ' + (CN ? plural(CN.total, 'constraint') + ' with a target in ' + rangeText : 'no constraint feed')
+      : S.page === 'risk'
+      ? 'High-risk filters · ' + (V.risk ? plural(V.risk.total, 'open high-risk activity', 'open high-risk activities') + ' planned in ' + rangeText : 'no high-risk activities flagged')
       : 'Performance filters · ' + C.fmtNum(T.tasks) + ' of ' + C.fmtNum(T.allTasks) + ' activities planned to finish in ' + rangeText
         + (hasCommitted ? ' · ' + C.fmtNum(V.commitmentRows) + ' commitments' : '')) + dims);
+
+    /* the High-risk tab badge follows the High-risk page's own filters */
+    var RB0 = ctx.risk, rbadge = document.getElementById('tabRiskBadge'), rlate = RB0 ? RB0.lateStart + RB0.overdue - RB0.rows.filter(function (r) { return r.lateStart && r.overdue; }).length : 0;
+    rbadge.hidden = !rlate;
+    if (rlate) { rbadge.textContent = C.fmtNum(rlate) + ' late'; rbadge.className = 'tab-badge tone-bad'; rbadge.title = rlate + ' open high-risk activities that should have started or are past their planned finish, under the High-risk filters'; }
+    if (S.page === 'risk' && V.risk) renderRisk(V, S, rangeText);
 
     /* ---- weekly committed PPC: kept / missed columns, PPC line ---- */
     var weeks = V.weeks;

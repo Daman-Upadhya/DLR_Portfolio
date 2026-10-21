@@ -24,6 +24,10 @@
   --s-rej: #e34948;
   --s-idle: #c9d2d9;
 
+  /* high-risk page: heat-map ramp end and icon ink */
+  --risk: #d9541e;
+  --risk-ink: #b3410f;
+
   /* categorical slots for reason categories: a validated order (adjacent pairs stay apart
      under colour-vision deficiency); assigned in fixed order, never cycled past 8 */
   --cat-1: #2a78d6;
@@ -98,6 +102,9 @@
   --s-prog: #4f93e3;
   --s-rej: #ef6b6a;
   --s-idle: #3a444d;
+
+  --risk: #ef7744;
+  --risk-ink: #f5a27c;
 
   --cat-1: #3987e5;
   --cat-2: #d95926;

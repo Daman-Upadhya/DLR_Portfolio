@@ -86,6 +86,17 @@ history before its removal on 6 Oct 2026).
   the overdue list). The Constraints tab shows how many constraints are overdue in the current
   filter context. The slicers apply to both pages, and the open page is kept in the URL hash
   (`#page=constraints`) with the filters.
+- **High-risk** (a third tab, shown only when the task feed flags high-risk activities): an
+  activity is high-risk when its `customField` has `"High Risk Activity": "Yes"`; its types come
+  from `"High Risk Activity Type"` (comma separated, so one activity can carry several). Field
+  names and values are in `Template/dashboard_data.json` → `highRisk`. The page counts activities
+  that are not complete or quality-checked and whose planned start–end overlaps the range; one
+  that is Started but past its planned start counts from today. Its range defaults to a six-week
+  look-ahead from this week, and it has its own slicers (risk type, trade, location,
+  organisation). It shows tiles (total, in progress, starting in 7 days, should have started,
+  past planned finish, multiple types), a trade × risk-type heat map, a card per type with its
+  icon, top trades and locations, a weekly look-ahead by readiness, and the next activities to
+  start. Every cell, card and bar opens its activities. The tab badge counts the late ones.
 - **Export PPC review**: a button in the control bar opens a standalone report for the
   selected range and filters, ready to send: committed / successful / unsuccessful totals, PPC for the
   range, the 6-week rolling PPC and last week's PPC; an overall chart of successful and unsuccessful per
