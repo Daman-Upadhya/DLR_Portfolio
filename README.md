@@ -86,7 +86,16 @@ history before its removal on 6 Oct 2026).
   the overdue list). The Constraints tab shows how many constraints are overdue in the current
   filter context. The slicers apply to both pages, and the open page is kept in the URL hash
   (`#page=constraints`) with the filters.
-- **High-risk** (a third tab, shown only when the task feed flags high-risk activities): an
+- **Look-ahead** (the second tab): activities whose planned start or planned end falls in the
+  range, all statuses, each counted once in the week it starts (or ends, when it starts earlier).
+  Its range defaults to the 4 weeks from next Monday; 4 / 8 week buttons switch the length
+  (`Template/dashboard_data.json` → `lookahead`). Tiles: look-ahead activities, planned to start,
+  ready to start (share of not-yet-started starts that are Ready), constraint-free starts, held by
+  open constraints, overdue constraints. Then status by look-ahead week, the status distribution,
+  the linked-constraint state of every activity (linked through the constraint's activity guid,
+  whatever the Constraints page's filters), starts by trade and week, and the activities held by
+  open constraints with the constraint names and next target.
+- **High-risk** (a further tab, shown only when the task feed flags high-risk activities): an
   activity is high-risk when its `customField` has `"High Risk Activity": "Yes"`; its types come
   from `"High Risk Activity Type"` (comma separated, so one activity can carry several). Field
   names and values are in `Template/dashboard_data.json` → `highRisk`. The page counts activities

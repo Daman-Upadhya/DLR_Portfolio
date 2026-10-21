@@ -133,6 +133,12 @@
     }
   },
 
+  "lookahead": {
+    "_comment": "Look-ahead page: activities whose planned start or planned end falls in the range (every status). Its range defaults to defaultWeeks whole weeks from next Monday (from this Monday when startNextWeek is false); the page's 4 / 8 week buttons pick the length.",
+    "defaultWeeks": 4,
+    "startNextWeek": true
+  },
+
   "highRisk": {
     "_comment": "High-risk page. An activity is high-risk when the task feed's customField[flagField] is one of flagValues; its types are customField[typeField], comma separated (an activity can carry several). The page counts activities that are not complete (status.groups.complete) and whose planned start..end overlaps the range; an in-progress activity (status.groups.inProgress) whose planned start has passed starts today instead. The tab is hidden when no activity is flagged. defaultWeeks = the page's default look-ahead from the current week.",
     "flagField": "High Risk Activity",

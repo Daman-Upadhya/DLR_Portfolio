@@ -157,6 +157,19 @@
     }).observe(svg);
   })();
 
+  var laWeeksSpec = null;  /* the look-ahead status chart's last spec, redrawn when its width changes (the tab starts hidden) */
+  (function watchLaWeeks() {
+    var svg = document.getElementById('laWeeksChart');
+    if (!svg || !window.ResizeObserver) return;
+    var last = 0, pending = false;
+    new ResizeObserver(function () {
+      var w = Math.round(svg.getBoundingClientRect().width);
+      if (!laWeeksSpec || !w || Math.abs(w - last) < 8 || pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; last = w; C.comboChart(svg, laWeeksSpec); });
+    }).observe(svg);
+  })();
+
   var riskWeeksSpec = null;  /* the high-risk look-ahead chart's last spec, redrawn when its width changes (the tab starts hidden) */
   (function watchRiskWeeks() {
     var svg = document.getElementById('riskWeeksChart');
@@ -287,6 +300,24 @@
       { h: 'Status', cell: function (r) { return statusCell(r.status); } },
       { h: 'Reasons', cell: reasonsCell }
     ],
+    lookahead: [
+      { h: 'Activity', cell: function (r) {
+          var td = nameCell(r.name, actSub(r));
+          if (r.riskTypes.length) { var w = el('div', 'risk-cell'); r.riskTypes.forEach(function (x) { w.appendChild(riskIcon(x, true)); }); td.appendChild(w); }
+          return td; } },
+      { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
+      { h: 'Organisation', cell: function (r) { return textCell(r.organisation); } },
+      { h: 'Planned start', num: true, cell: function (r) { return dateCell(r.plannedStart); } },
+      { h: 'Planned end', num: true, cell: function (r) { return dateCell(r.plannedEnd); } },
+      { h: 'Status', cell: function (r) { return statusCell(r.status); } },
+      { h: 'Constraints', cell: function (r) {
+          var td = el('td');
+          if (!r.consTotal) { td.textContent = '—'; return td; }
+          td.appendChild(el('div', r.consOverdue ? 'tone-text-bad' : r.consOpen ? 'tone-text-warn' : 'tone-text-good',
+            r.consOpen ? r.consOpen + ' open of ' + r.consTotal + (r.consOverdue ? ', ' + r.consOverdue + ' overdue' : '') : 'All ' + r.consTotal + ' closed'));
+          if (r.consTitles.length) { var d = el('div', 'cell-note', r.consTitles.join(' · ')); d.title = r.consTitles.join('\n'); td.appendChild(d); }
+          return td; } }
+    ],
     risk: [
       { h: 'Activity', cell: function (r) { return nameCell(r.name, actSub(r)); } },
       { h: 'Risk type', cell: function (r) { return riskTypesCell(r.riskTypes); } },
@@ -327,6 +358,10 @@
                ['Planned duration', 'duration'], ['Delay days', 'delayDays'], ['Delay type', 'delayKind'],
                ['Reason categories', function (r) { return r.categories.join('; '); }], ['Reasons', function (r) { return r.reasons.join('; '); }],
                ['Events', function (r) { return r.events.join('; '); }]],
+    lookahead: [['Activity ID', 'id'], ['Activity', 'name'], ['Type', 'type'], ['Trade', 'trade'], ['Organisation', 'organisation'], ['Location', 'location'],
+                ['Status', 'status'], ['Planned start', 'plannedStart'], ['Planned end', 'plannedEnd'], ['Look-ahead week', function (r) { return weekLabel(r.lookWeek); }],
+                ['Linked constraints', 'consTotal'], ['Open constraints', 'consOpen'], ['Overdue constraints', 'consOverdue'], ['Next constraint target', 'nextTarget'],
+                ['Open constraint titles', function (r) { return r.consTitles.join('; '); }], ['High-risk types', function (r) { return r.riskTypes.join('; '); }]],
     risk: [['Activity ID', 'id'], ['Activity', 'name'], ['High-risk types', function (r) { return r.riskTypes.join('; '); }], ['Type', 'type'], ['Trade', 'trade'],
            ['Organisation', 'organisation'], ['Location', 'location'], ['Status', 'status'], ['Planned start', 'plannedStart'], ['Start (in progress from today)', 'effStart'],
            ['Planned end', 'plannedEnd'], ['Actual start', 'actualStart'],
@@ -367,9 +402,9 @@
     C.hideTip();
     var rows = A.records(CUR.V, spec, CUR.data);
     var kind = spec.type === 'constraints' ? 'constraint' : 'activity';
-    var isRisk = spec.type === 'risk';
+    var isRisk = spec.type === 'risk', isLa = spec.type === 'lookahead';
     DR = { rows: rows, kind: kind, title: title, opener: opener || document.activeElement,
-           cols: COLS[isRisk ? 'risk' : spec.type === 'constraints' ? 'constraints' : (spec.type === 'tasks' ? 'tasks' : 'commits')], csv: CSV[isRisk ? 'risk' : kind] };
+           cols: COLS[isLa ? 'lookahead' : isRisk ? 'risk' : spec.type === 'constraints' ? 'constraints' : (spec.type === 'tasks' ? 'tasks' : 'commits')], csv: CSV[isLa ? 'lookahead' : isRisk ? 'risk' : kind] };
     setText('drawerEyebrow', kind === 'constraint' ? 'Constraints' : 'Activities');
     setText('drawerTitle', title);
     setText('drawerSub', sub || '');
@@ -1037,8 +1072,8 @@
   /* slicer keys: Performance uses org / trade / loc (from the activity); Constraints uses cat / ctrade / cown (from the constraint);
      High-risk uses the risk type and the activity's org / trade / loc */
   var FILTER_KEYS = ['org', 'trade', 'loc', 'cat', 'ctrade', 'cown', 'rtype'];
-  var PAGE_KEYS = { performance: ['org', 'trade', 'loc'], constraints: ['cat', 'ctrade', 'cown'], risk: ['rtype', 'trade', 'loc', 'org'] };
-  var PAGES = { performance: 'pagePerformance', constraints: 'pageConstraints', risk: 'pageRisk' };
+  var PAGE_KEYS = { performance: ['org', 'trade', 'loc'], lookahead: ['trade', 'loc', 'org'], constraints: ['cat', 'ctrade', 'cown'], risk: ['rtype', 'trade', 'loc', 'org'] };
+  var PAGES = { performance: 'pagePerformance', lookahead: 'pageLookahead', constraints: 'pageConstraints', risk: 'pageRisk' };
 
   /* ---------- filter state in the URL hash ---------- */
   function parseHash(opts) {
@@ -1100,16 +1135,22 @@
     /* the High-risk page looks ahead: from this week's Monday, data.highRisk.defaultWeeks whole weeks */
     var hasRisk = FX.tasks.some(function (t) { return t.hr; });
     var riskMon = A.mondayOf(FX.today), riskWeeks = Number((data.highRisk || {}).defaultWeeks) || 6;
+    /* the Look-ahead page: whole weeks from next Monday (data.lookahead.startNextWeek), 4 by default */
+    var LA = data.lookahead || {}, laWeeks = Number(LA.defaultWeeks) || 4;
+    var laMon = LA.startNextWeek === false ? riskMon : A.addDays(riskMon, 7);
+    function laSpan(n) { return { from: laMon, to: A.addDays(laMon, 7 * n - 1) }; }
     var PAGE_DEFAULTS = {
       performance: Object.assign({}, defaults),
       constraints: Object.assign({}, defaults, { page: 'constraints' }),
-      risk: Object.assign({}, defaults, { page: 'risk', from: riskMon, to: A.addDays(riskMon, 7 * riskWeeks - 1) })
+      risk: Object.assign({}, defaults, { page: 'risk', from: riskMon, to: A.addDays(riskMon, 7 * riskWeeks - 1) }),
+      lookahead: Object.assign({}, defaults, { page: 'lookahead' }, laSpan(laWeeks))
     };
     function defaultsOf(page) { return PAGE_DEFAULTS[page] || defaults; }
     /* each page keeps its own slicers: the controls show the active page's, and changing them never touches the other page.
        A link carries the filters of the page it opens on. */
     var fromHash = parseHash(opts), startPage = fromHash.page === 'risk' && !hasRisk ? 'performance' : (fromHash.page || 'performance');
-    var FS = { performance: Object.assign({}, PAGE_DEFAULTS.performance), constraints: Object.assign({}, PAGE_DEFAULTS.constraints), risk: Object.assign({}, PAGE_DEFAULTS.risk) };
+    var FS = {};
+    Object.keys(PAGE_DEFAULTS).forEach(function (k) { FS[k] = Object.assign({}, PAGE_DEFAULTS[k]); });
     Object.assign(FS[startPage], fromHash, { page: startPage });
     var S = FS[startPage];
     /* reason-category colour slots are fixed once per page from the unfiltered view, so a filter never repaints a category */
@@ -1150,10 +1191,14 @@
     }
     function syncControls() { FILTER_KEYS.forEach(function (k) { pickers[k].set(S[k]); }); dayRange.set(S.from, S.to); }
     document.getElementById('fReset').addEventListener('click', resetFilters);
+    /* the Look-ahead page's 4 / 8 week buttons set its range to that many weeks from next Monday */
+    document.querySelectorAll('#laSpan button').forEach(function (b) {
+      b.addEventListener('click', function () { Object.assign(S, laSpan(Number(b.getAttribute('data-weeks')))); syncControls(); apply(); });
+    });
 
     /* ---- page tabs: Performance | Constraints | High-risk (only when the feed flags high-risk activities), each with its own slicers ---- */
     document.getElementById('tabRisk').hidden = !hasRisk;
-    var tabs = ['tabPerformance', 'tabConstraints', 'tabRisk'].map(function (id) { return document.getElementById(id); }).filter(function (t) { return !t.hidden; });
+    var tabs = ['tabPerformance', 'tabLookahead', 'tabConstraints', 'tabRisk'].map(function (id) { return document.getElementById(id); }).filter(function (t) { return !t.hidden; });
     function showPage(page, focus) {
       S = FS[page];
       /* each page shows its own slicers */
@@ -1205,9 +1250,156 @@
       /* the Constraints and High-risk tab badges and the panel's open-constraint count always follow their own page's filters */
       var V = A.run(FX, S, data), VC = S.page === 'constraints' ? V : A.run(FX, FS.constraints, data);
       var VR = !hasRisk ? null : S.page === 'risk' ? V : A.run(FX, FS.risk, data);
-      renderView(V, S, { opts: opts, catCls: catCls, catFold: catFold, noneLabel: noneLabel, data: data, M: M, consCN: VC.constraints, risk: VR ? VR.risk : null });
+      renderView(V, S, { laSpan: laSpan, opts: opts, catCls: catCls, catFold: catFold, noneLabel: noneLabel, data: data, M: M, consCN: VC.constraints, risk: VR ? VR.risk : null });
     }
     apply();
+  }
+
+  /* ========================================================== Look-ahead page */
+  var laHeatAll = false; /* the trade x week grid shows the 15 trades with the most starts until expanded */
+  var LA_HEAT_ROWS = 15;
+  var LA_GROUP_INFO = [['complete', 'Complete'], ['inProgress', 'In progress'], ['issue', 'Stopped / rejected'], ['ready', 'Ready'], ['notStarted', 'Not ready']];
+  var LA_CSTATES = [['overdue', 'Open, overdue constraints', 'c-overdue'], ['open', 'Open constraints, not yet due', 'c-open'],
+                    ['closed', 'Constraints all closed', 'c-closed'], ['none', 'No linked constraints', 'c-none']];
+  function pctTone(v) { return v === null || v === undefined ? null : v >= 80 ? 'good' : v >= 50 ? 'warn' : 'bad'; }
+  function renderLookahead(V, S, rangeText, ctx) {
+    var L = V.lookahead, UN = V.sets.UN;
+    function ll(spec, title, sub) { spec.type = 'lookahead'; return lister(spec, title, sub || rangeText); }
+    document.querySelectorAll('#laSpan button').forEach(function (b) {
+      var sp = ctx.laSpan(Number(b.getAttribute('data-weeks')));
+      b.setAttribute('aria-pressed', S.from === sp.from && S.to === sp.to ? 'true' : 'false');
+    });
+    setText('laDesc', plural(L.weeks.length, 'week') + ', ' + rangeText + ' · activities whose planned start or planned end falls in the range, each in the week it starts');
+
+    /* ---- tiles ---- */
+    var k = document.getElementById('laKpis'); k.innerHTML = '';
+    [
+      { label: 'Look-ahead activities', value: C.fmtNum(L.total), sub: 'Planned start or end in the range',
+        pick: L.total ? ll({}, 'Look-ahead activities') : null },
+      { label: 'Planned to start', value: C.fmtNum(L.starting), sub: C.fmtNum(L.finishing) + ' planned to finish in the range',
+        pick: L.starting ? ll({ pred: 'starting' }, 'Activities planned to start') : null },
+      { label: 'Ready to start', value: C.fmtPct(L.readyPct), tone: pctTone(L.readyPct), sub: C.fmtNum(L.ready) + ' of ' + C.fmtNum(L.toStart) + ' not-yet-started starts are Ready',
+        pick: L.toStart ? ll({ pred: 'toStart' }, 'Starts not yet started', rangeText + ' · Ready first in the status column') : null },
+      { label: 'Constraint-free starts', value: C.fmtPct(L.constraintFreePct), tone: pctTone(L.constraintFreePct), sub: 'Starts with no open constraint',
+        pick: L.starting ? ll({ pred: 'starting', cstate: null }, 'Activities planned to start') : null },
+      { label: 'Held by constraints', value: C.fmtNum(L.withOpen), tone: L.withOpen ? 'warn' : 'good', toneLabel: L.withOpen ? 'Open' : 'None',
+        sub: plural(L.openCons, 'open constraint') + ' on these activities',
+        pick: L.withOpen ? ll({ pred: 'open' }, 'Look-ahead activities with open constraints') : null },
+      { label: 'Constraints overdue', value: C.fmtNum(L.overdueCons), tone: L.overdueCons ? 'bad' : 'good', toneLabel: L.overdueCons ? 'Overdue' : 'None',
+        sub: 'Open, target before today, on ' + plural(L.withOverdue, 'activity', 'activities'),
+        pick: L.withOverdue ? ll({ pred: 'overdue' }, 'Look-ahead activities with overdue constraints') : null }
+    ].forEach(function (d) { k.appendChild(kpiTile(d)); });
+
+    /* ---- status by look-ahead week ---- */
+    var W = L.weeks;
+    setText('laWeeksDesc', 'Activities per look-ahead week by status today · ' + C.fmtNum(L.starting) + ' starts, ' + C.fmtNum(L.total - L.starting) + ' finishing only');
+    laWeeksSpec = {
+      labels: W.map(function (w) { return weekLabel(w.week); }), band: W.map(function () { return false; }),
+      stacked: true, showLabels: true, axisTitles: ['Activities', ''], emptyText: 'No activities planned to start or finish in the selected range.',
+      columns: LA_GROUP_INFO.map(function (g) {
+        return { name: g[1], cls: 'g-' + g[0], values: W.map(function (w) { return w[g[0]]; }),
+                 tips: W.map(function (w) { return weekLabel(w.week) + ', ' + fmtRange(w.start, w.end) + ': ' + C.fmtNum(w[g[0]]) + ' ' + g[1].toLowerCase() + ' of ' + C.fmtNum(w.total); }),
+                 picks: W.map(function (w) { return w[g[0]] ? ll({ week: w.week, group: g[0] }, weekLabel(w.week) + ': ' + g[1].toLowerCase(), fmtRange(w.start, w.end)) : null; }) };
+      })
+    };
+    C.comboChart(document.getElementById('laWeeksChart'), laWeeksSpec);
+    var lg = document.getElementById('laWeeksLegend'); lg.innerHTML = '';
+    LA_GROUP_INFO.forEach(function (g) { lg.appendChild(chip(g[1], L.byGroup[g[0]], 'g-' + g[0], null, L.byGroup[g[0]] ? ll({ group: g[0] }, 'Look-ahead activities: ' + g[1].toLowerCase()) : null)); });
+    ensureListBtn('laWeeksDesc', L.total ? ll({}, 'Look-ahead activities by week') : null);
+
+    /* ---- status distribution: every status value ---- */
+    C.barRows(document.getElementById('laStatus'), L.byStatus.map(function (x) {
+      var pk = ll({ status: x.status }, statusLabel(x.status) + ': look-ahead activities');
+      return { label: statusLabel(x.status), total: x.count, valueText: C.fmtNum(x.count), title: statusLabel(x.status) + ': ' + C.fmtNum(x.count) + ' (' + C.fmtPct(L.total ? 100 * x.count / L.total : null) + ')', pick: pk,
+               parts: [{ count: x.count, cls: 'g-' + x.group, label: statusLabel(x.status), pick: pk }] };
+    }), { emptyText: 'No look-ahead activities.' });
+    setText('laStatusDesc', plural(L.byStatus.length, 'status', 'statuses') + ' across ' + plural(L.total, 'activity', 'activities'));
+
+    /* ---- linked constraints ---- */
+    C.barRows(document.getElementById('laCons'), LA_CSTATES.map(function (c) {
+      var n = L.cstates[c[0]], pk = n ? ll({ cstate: c[0] }, 'Look-ahead activities: ' + c[1].toLowerCase()) : null;
+      return { label: c[1], total: n, valueText: C.fmtNum(n), title: c[1] + ': ' + C.fmtNum(n) + ' (' + C.fmtPct(L.total ? 100 * n / L.total : null) + ')', pick: pk, parts: [{ count: n, cls: c[2], label: c[1], pick: pk }] };
+    }), { emptyText: 'No look-ahead activities.' });
+    setText('laConsDesc', plural(L.linked, 'activity', 'activities') + ' with linked constraints');
+    var ck = document.getElementById('laConsKey'); ck.innerHTML = '';
+    ck.appendChild(chip('Open constraints', L.openCons, 'c-open', 'Distinct open constraints linked to look-ahead activities', L.withOpen ? ll({ pred: 'open' }, 'Look-ahead activities with open constraints') : null));
+    ck.appendChild(chip('Overdue', L.overdueCons, 'c-overdue', 'Open constraints with a target before today', L.withOverdue ? ll({ pred: 'overdue' }, 'Look-ahead activities with overdue constraints') : null));
+    if (L.highRisk) ck.appendChild(chip('High-risk activities', L.highRisk, null, 'Look-ahead activities flagged high-risk', ll({ pred: 'highRisk' }, 'High-risk look-ahead activities')));
+    ensureListBtn('laConsDesc', L.linked ? ll({ pred: 'linked' }, 'Look-ahead activities with linked constraints') : null);
+
+    /* ---- starts by trade and week ---- */
+    var host = document.getElementById('laHeat'); host.innerHTML = '';
+    var more = document.getElementById('laHeatMore'), key = document.getElementById('laHeatKey'); key.innerHTML = '';
+    if (!L.byTrade.length) {
+      host.appendChild(el('p', 'empty', 'No activities are planned to start in the selected range.')); more.hidden = true;
+    } else {
+      var tbl = el('table', 'heat'), hr = el('tr'), thead = el('thead');
+      hr.appendChild(el('th', null, ''));
+      W.forEach(function (w) {
+        var th = el('th'), box = el('div', 'ht-type'); box.appendChild(el('strong', null, weekLabel(w.week))); box.appendChild(el('span', null, C.fmtDate(w.start, true)));
+        if (w.starts) makePick(box, ll({ pred: 'starting', week: w.week }, 'Starts in ' + weekLabel(w.week), fmtRange(w.start, w.end)), false);
+        th.appendChild(box); hr.appendChild(th);
+      });
+      hr.appendChild(el('th', 'num', 'Starts')); hr.appendChild(el('th', 'num', 'Held'));
+      thead.appendChild(hr); tbl.appendChild(thead);
+      var tb = el('tbody');
+      (laHeatAll ? L.byTrade : L.byTrade.slice(0, LA_HEAT_ROWS)).forEach(function (row) {
+        var tr = el('tr'), name = el('th', 'ht-trade', row.trade);
+        makePick(name, ll({ pred: 'starting', trade: row.trade }, row.trade + ': starts'), false); name.title = row.trade + ': ' + plural(row.starts, 'start');
+        tr.appendChild(name);
+        W.forEach(function (w) {
+          var v = row.cells[w.week] || 0, td = el('td', 'hc' + (v ? '' : ' zero'), v ? C.fmtNum(v) : '·');
+          if (v) {
+            var p = L.maxCell ? v / L.maxCell : 0;
+            td.style.background = 'color-mix(in srgb, var(--risk) ' + Math.round(14 + 80 * p) + '%, var(--card))';
+            if (p > 0.55) td.classList.add('hot');
+            td.title = row.trade + ' · ' + weekLabel(w.week) + ': ' + plural(v, 'start');
+            makePick(td, ll({ trade: row.trade, startWeek: w.week }, row.trade + ' · starts in ' + weekLabel(w.week), fmtRange(w.start, w.end)), false);
+          }
+          tr.appendChild(td);
+        });
+        var tot = el('td', 'hc tot', C.fmtNum(row.starts)); makePick(tot, ll({ pred: 'starting', trade: row.trade }, row.trade + ': starts'), false); tr.appendChild(tot);
+        var held = el('td', 'hc tot' + (row.open ? ' tone-text-warn' : ''), row.open ? C.fmtNum(row.open) : '—');
+        if (row.open) { held.title = row.open + ' of ' + row.starts + ' starts have open constraints'; makePick(held, ll({ pred: 'open', trade: row.trade }, row.trade + ': activities with open constraints'), false); }
+        tr.appendChild(held);
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb);
+      var tf = el('tfoot'), fr = el('tr'); fr.appendChild(el('th', null, 'All trades'));
+      W.forEach(function (w) { fr.appendChild(el('td', 'hc', C.fmtNum(w.starts))); });
+      fr.appendChild(el('td', 'hc', C.fmtNum(L.starting)));
+      fr.appendChild(el('td', 'hc', C.fmtNum(L.byTrade.reduce(function (a, r) { return a + r.open; }, 0))));
+      tf.appendChild(fr); tbl.appendChild(tf); host.appendChild(tbl);
+      more.hidden = L.byTrade.length <= LA_HEAT_ROWS;
+      more.textContent = laHeatAll ? 'Show the top ' + LA_HEAT_ROWS + ' trades' : 'Show all ' + C.fmtNum(L.byTrade.length) + ' trades';
+      more.onclick = function () { laHeatAll = !laHeatAll; renderLookahead(V, S, rangeText, ctx); };
+      key.appendChild(el('span', null, '1')); key.appendChild(el('span', 'heat-ramp')); key.appendChild(el('span', null, C.fmtNum(L.maxCell)));
+      key.appendChild(el('span', null, '· activities planned to start, per trade and week. Held = starts with an open constraint.'));
+    }
+    setText('laHeatDesc', L.byTrade.length ? plural(L.byTrade.length, 'trade') + ' starting work' + (L.byTrade.length > LA_HEAT_ROWS && !laHeatAll ? ' · the ' + LA_HEAT_ROWS + ' with the most starts shown' : '') : '');
+    ensureListBtn('laHeatDesc', L.starting ? ll({ pred: 'starting' }, 'Activities planned to start') : null);
+
+    /* ---- activities held by open constraints ---- */
+    var held = L.rows.filter(function (r) { return r.open.length; }).sort(function (a, b) {
+      return (b.overdue.length > 0) - (a.overdue.length > 0) || a.anchor.localeCompare(b.anchor) || (a.t.n || '').localeCompare(b.t.n || '');
+    });
+    var HB = document.getElementById('laBlockedBody'); HB.innerHTML = '';
+    setText('laBlockedDesc', held.length ? plural(held.length, 'activity', 'activities') + ' · overdue constraints first' + (held.length > 10 ? ', the first 10 shown' : '') : 'No look-ahead activity has an open constraint');
+    ensureListBtn('laBlockedDesc', held.length ? ll({ pred: 'open' }, 'Look-ahead activities with open constraints') : null);
+    if (!held.length) emptyRow(HB, 6, 'No look-ahead activity has an open constraint.');
+    held.slice(0, 10).forEach(function (r) {
+      var tr = el('tr');
+      tr.appendChild(nameCell(r.t.n, [r.t.id ? '#' + r.t.id : null, r.t.l].filter(Boolean).join(' · ')));
+      tr.appendChild(textCell(r.t.tr || UN));
+      tr.appendChild(dateCell(r.t.ps));
+      var cc = el('td'), list = el('div', 'cons-list');
+      r.open.slice(0, 3).forEach(function (c) { var sp = el('span', c.tg && c.tg < V.today ? 'tone-text-bad' : null, c.t || '(untitled)'); sp.title = (c.c ? c.c + ' · ' : '') + (c.ow || '') + (c.tg ? ' · target ' + C.fmtDate(c.tg, true) : ''); list.appendChild(sp); });
+      if (r.open.length > 3) list.appendChild(el('span', 'cell-note', '+ ' + (r.open.length - 3) + ' more'));
+      cc.appendChild(list); tr.appendChild(cc);
+      var nt = dateCell(r.nextTarget); if (r.overdue.length) nt.appendChild(el('div', 'cell-note tone-text-bad', r.overdue.length + ' overdue')); tr.appendChild(nt);
+      tr.appendChild(statusCell(r.t.st));
+      HB.appendChild(tr);
+    });
   }
 
   /* ========================================================== High-risk page */
@@ -1376,11 +1568,14 @@
     var CC = ctx.consCN;
     setText('hpOpenCons', CC ? C.fmtNum(CC.open) : '—');
     var dimList = S.page === 'constraints' ? [dimText('cat', 'category'), dimText('ctrade', 'trade'), dimText('cown', 'owner')]
+                : S.page === 'lookahead' ? [dimText('trade', 'trade'), dimText('loc', 'location'), dimText('org', 'organisation')]
                 : S.page === 'risk' ? [dimText('rtype', 'risk type'), dimText('trade', 'trade'), dimText('loc', 'location'), dimText('org', 'organisation')]
                 : [dimText('org', 'organisation'), dimText('trade', 'trade'), dimText('loc', 'location')];
     var dims = dimList.filter(function (t) { return t.indexOf('all ') !== 0; }).map(function (t) { return ' · ' + t; }).join('');
     setText('fSummary', (S.page === 'constraints'
       ? 'Constraints filters · ' + (CN ? plural(CN.total, 'constraint') + ' with a target in ' + rangeText : 'no constraint feed')
+      : S.page === 'lookahead'
+      ? 'Look-ahead filters · ' + plural(V.lookahead.total, 'activity', 'activities') + ' planned to start or finish in ' + rangeText
       : S.page === 'risk'
       ? 'High-risk filters · ' + (V.risk ? plural(V.risk.total, 'open high-risk activity', 'open high-risk activities') + ' planned in ' + rangeText : 'no high-risk activities flagged')
       : 'Performance filters · ' + C.fmtNum(T.tasks) + ' of ' + C.fmtNum(T.allTasks) + ' activities planned to finish in ' + rangeText
@@ -1391,6 +1586,7 @@
     rbadge.hidden = !rlate;
     if (rlate) { rbadge.textContent = C.fmtNum(rlate) + ' late'; rbadge.className = 'tab-badge tone-bad'; rbadge.title = rlate + ' open high-risk activities that should have started or are past their planned finish, under the High-risk filters'; }
     if (S.page === 'risk' && V.risk) renderRisk(V, S, rangeText);
+    if (S.page === 'lookahead') renderLookahead(V, S, rangeText, ctx);
 
     /* ---- weekly committed PPC: kept / missed columns, PPC line ---- */
     var weeks = V.weeks;

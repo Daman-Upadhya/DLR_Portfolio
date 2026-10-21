@@ -220,6 +220,23 @@ table.heat tfoot th { text-align: left; font-size: 12px; font-weight: 600; color
 .risk-next .cell-name > div:first-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .risk-next .cell-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
 svg.chart .col.r-started { fill: var(--s-prog); }
+/* look-ahead page */
+.la-title { align-items: center; }
+.la-seg { margin: 0 0 0 auto; }
+.la-heat-card { --risk: var(--s-prog); }
+.la-heat td.hc.wk-now { box-shadow: inset 0 0 0 1px var(--brand); }
+.cons-list { display: flex; flex-direction: column; gap: 2px; }
+.cons-list span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+svg.chart .col.g-complete { fill: var(--s-app); }
+svg.chart .col.g-inProgress { fill: var(--s-prog); }
+svg.chart .col.g-issue { fill: var(--s-rej); }
+svg.chart .col.g-ready { fill: var(--cat-3); }
+svg.chart .col.g-notStarted { fill: var(--s-reop); }
+.g-complete, .swatch.g-complete { background: var(--s-app); } .g-inProgress, .swatch.g-inProgress { background: var(--s-prog); }
+.g-issue, .swatch.g-issue { background: var(--s-rej); } .g-ready, .swatch.g-ready { background: var(--cat-3); }
+.g-notStarted, .swatch.g-notStarted { background: var(--s-reop); }
+.c-none, .swatch.c-none { background: var(--s-idle); } .c-closed, .swatch.c-closed { background: var(--s-app); }
+.c-open, .swatch.c-open { background: var(--s-reop); } .c-overdue, .swatch.c-overdue { background: var(--s-rej); }
 svg.chart .col.r-ready { fill: var(--s-app); }
 svg.chart .col.r-notready { fill: var(--s-reop); }
 .swatch.r-started { background: var(--s-prog); } .swatch.r-ready { background: var(--s-app); } .swatch.r-notready { background: var(--s-reop); }
@@ -420,7 +437,7 @@ tr.row-warn td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
 .segmented { display: inline-flex; background: var(--inset); border-radius: 999px; padding: 3px; gap: 2px; margin-bottom: 14px; max-width: 100%; }
 .segmented button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; font-weight: 500; padding: 6px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap; transition: background .12s var(--ease), color .12s var(--ease); }
 .segmented button:hover { color: var(--ink); }
-.segmented button[aria-selected="true"] { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: var(--shadow-xs); }
+.segmented button[aria-selected="true"], .segmented button[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: var(--shadow-xs); }
 .segmented button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 .pie-wrap { display: flex; gap: 18px 24px; align-items: center; flex-wrap: wrap; }
 svg.donut { width: 200px; height: 200px; flex: none; display: block; }
@@ -608,6 +625,7 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
     <div class="cb-row">
       <nav class="page-tabs" role="tablist" aria-label="Dashboard pages">
         <button type="button" class="page-tab" role="tab" id="tabPerformance" data-page="performance" aria-controls="pagePerformance" aria-selected="true"><svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11"/><path d="M4.5 11V8"/><path d="M8 11V5"/><path d="M11.5 11V3"/></svg>Performance</button>
+        <button type="button" class="page-tab" role="tab" id="tabLookahead" data-page="lookahead" aria-controls="pageLookahead" aria-selected="false"><svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.6"/><path d="M2 6.5h12"/><path d="M5.2 1.8v2.4M10.8 1.8v2.4"/><path d="M7 10.2h4.2"/><path d="M9.6 8.6l1.6 1.6-1.6 1.6"/></svg>Look-ahead</button>
         <button type="button" class="page-tab" role="tab" id="tabConstraints" data-page="constraints" aria-controls="pageConstraints" aria-selected="false"><svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 14.6 13.5H1.4Z"/><path d="M8 6.2v3.3"/><path d="M8 11.6v.1"/></svg>Constraints <span class="tab-badge" id="tabConstraintsBadge" hidden></span></button>
         <button type="button" class="page-tab" role="tab" id="tabRisk" data-page="risk" aria-controls="pageRisk" aria-selected="false" hidden><svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.6 13.5 3.8v4c0 3.2-2.3 5.6-5.5 6.6-3.2-1-5.5-3.4-5.5-6.6v-4Z"/><path d="M8 5.2v3.3"/><path d="M8 10.6v.1"/></svg>High-risk <span class="tab-badge" id="tabRiskBadge" hidden></span></button>
       </nav>
@@ -615,9 +633,9 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
       <div class="filters" id="filters" role="group" aria-label="Filters">
         <div class="dr" id="fDate" title="Date range"></div>
         <div class="ms" id="fRType" title="High-risk activity type" data-for="risk" hidden></div>
-        <div class="ms" id="fTrade" title="Trade" data-for="performance risk"></div>
-        <div class="ms" id="fLoc" title="Location" data-for="performance risk"></div>
-        <div class="ms" id="fOrg" title="Organisation" data-for="performance risk"></div>
+        <div class="ms" id="fTrade" title="Trade" data-for="performance lookahead risk"></div>
+        <div class="ms" id="fLoc" title="Location" data-for="performance lookahead risk"></div>
+        <div class="ms" id="fOrg" title="Organisation" data-for="performance lookahead risk"></div>
         <div class="ms" id="fCat" title="Constraint category" data-for="constraints" hidden></div>
         <div class="ms" id="fCTrade" title="Trade recorded on the constraint" data-for="constraints" hidden></div>
         <div class="ms" id="fCOwn" title="Responsible owner of the constraint" data-for="constraints" hidden></div>
@@ -696,6 +714,54 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
       <hr class="hairline" id="rbtHr">
       <div class="chips" id="rbtOthers" hidden></div>
       <div class="chips" id="rbtLegend" style="margin-top:10px"></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="page-panel" id="pageLookahead" role="tabpanel" aria-labelledby="tabLookahead" hidden>
+  <section data-needs-data>
+    <div class="section-title la-title">
+      <h2>Look-ahead</h2><span class="desc" id="laDesc"></span>
+      <div class="segmented la-seg" id="laSpan" role="group" aria-label="Look-ahead length">
+        <button type="button" data-weeks="4" aria-pressed="false">4 weeks</button>
+        <button type="button" data-weeks="8" aria-pressed="false">8 weeks</button>
+      </div>
+    </div>
+    <div class="grid risk-kpis" id="laKpis"></div>
+
+    <div class="card cons-gap">
+      <div class="card-head"><h2>Status by look-ahead week</h2><span class="desc" id="laWeeksDesc"></span></div>
+      <svg class="chart" id="laWeeksChart" role="img" aria-label="Look-ahead activities per week by status group"></svg>
+      <div class="chips" id="laWeeksLegend" style="margin-top:10px"></div>
+    </div>
+
+    <div class="grid grid-wide cons-gap">
+      <div class="card">
+        <div class="card-head"><h2>Status distribution</h2><span class="desc" id="laStatusDesc"></span></div>
+        <div id="laStatus"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Linked constraints</h2><span class="desc" id="laConsDesc"></span></div>
+        <div id="laCons"></div>
+        <hr class="hairline">
+        <div class="chips" id="laConsKey"></div>
+      </div>
+    </div>
+
+    <div class="card cons-gap la-heat-card">
+      <div class="card-head"><h2>Starts by trade and week</h2><span class="desc" id="laHeatDesc"></span></div>
+      <div class="heat-wrap la-heat" id="laHeat"></div>
+      <div class="heat-foot"><div class="heat-key" id="laHeatKey"></div><button class="btn heat-more" id="laHeatMore" type="button" hidden></button></div>
+    </div>
+
+    <div class="card cons-gap">
+      <div class="card-head"><h2>Activities held by open constraints</h2><span class="desc" id="laBlockedDesc"></span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Activity</th><th>Trade</th><th class="num">Planned start</th><th>Open constraints</th><th class="num">Next target</th><th>Status</th></tr></thead>
+          <tbody id="laBlockedBody"></tbody>
+        </table>
+      </div>
     </div>
   </section>
   </div>
