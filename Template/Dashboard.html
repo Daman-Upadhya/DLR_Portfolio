@@ -161,6 +161,16 @@ section:first-of-type { margin-top: 0; }
 .ms-list label:hover { background: var(--inset); }
 .ms-list input { margin: 0; accent-color: var(--brand); }
 .ms-empty { font-size: 13px; color: var(--muted); padding: 6px; }
+/* tree mode (a project with a location hierarchy) */
+.ms-pop.ms-tree { width: min(400px, 92vw); }
+.ms-tree .ms-list { max-height: 360px; }
+.ms-row { display: flex; align-items: flex-start; gap: 2px; }
+.ms-row label { flex: 1; min-width: 0; padding-left: 4px; }
+.ms-row label > span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ms-twist { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px; width: 22px; min-height: 32px; flex: none; cursor: pointer; border-radius: 6px; }
+.ms-twist:hover { color: var(--brand); background: var(--inset); }
+.ms-twist.leaf { cursor: default; visibility: hidden; }
+.ms-count { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
 @media (max-width: 760px) { .ms-tools input[type="search"] { font-size: 17.5px; } .ms-list label { font-size: 17.5px; } }
 
 /* ---------- KPI tiles ---------- */
@@ -571,13 +581,13 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
   <section data-needs-data>
     <div class="card">
       <div class="card-head"><h2>Weekly committed PPC</h2><span class="desc" id="ppcDesc"></span></div>
-      <svg class="chart" id="ppcChart" role="img" aria-label="Activities kept and missed per committed week, with committed PPC"></svg>
+      <svg class="chart" id="ppcChart" role="img" aria-label="Successful and unsuccessful activities per committed week, with committed PPC"></svg>
       <div class="legend" id="ppcLegend"></div>
       <details class="table-view">
         <summary>View as table</summary>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Week</th><th>Dates</th><th class="num">Committed</th><th class="num">Kept</th><th class="num">Missed</th><th class="num">Committed PPC</th></tr></thead>
+            <thead><tr><th>Week</th><th>Dates</th><th class="num">Committed</th><th class="num">Successful</th><th class="num">Unsuccessful</th><th class="num">Committed PPC</th></tr></thead>
             <tbody id="ppcTable"></tbody>
           </table>
         </div>
@@ -601,7 +611,7 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
       </div>
       <div class="tp-grid">
         <div class="tp-col">
-          <div class="tp-sub" id="tradeBarsTitle">Most missed commitments</div>
+          <div class="tp-sub" id="tradeBarsTitle">Most unsuccessful commitments</div>
           <div id="tradeBars"></div>
         </div>
         <div class="tp-col" id="tradeRest"></div>

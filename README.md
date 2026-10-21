@@ -87,8 +87,8 @@ history before its removal on 6 Oct 2026).
   filter context. The slicers apply to both pages, and the open page is kept in the URL hash
   (`#page=constraints`) with the filters.
 - **Export PPC review**: a button in the control bar opens a standalone report for the
-  selected range and filters, ready to send: committed / kept / missed totals, PPC for the
-  range, the 6-week rolling PPC and last week's PPC; an overall chart of kept and missed per
+  selected range and filters, ready to send: committed / successful / unsuccessful totals, PPC for the
+  range, the 6-week rolling PPC and last week's PPC; an overall chart of successful and unsuccessful per
   week with the rolling and weekly PPC; a heat table of the rolling PPC per trade and week; and
   every commitment grouped by trade and week. The report prints or saves as PDF (A4
   landscape) and downloads as HTML or as a CSV activity list. The rolling PPC (`Agg.review`)
@@ -106,7 +106,11 @@ history before its removal on 6 Oct 2026).
 - **Slicers**: a date range picker (presets on the left: this week, last week, last 4 / 6 /
   12 weeks, this month, last month, all data; two months side by side; selections snap to
   whole ISO weeks; days outside the data are struck through) and
-  organisation / trade / location pickers, as in the Power BI report. The range applies to
+  organisation / trade / location pickers, as in the Power BI report. A project can give its
+  locations a hierarchy (`locationTree` in `overrides/data.json`, one path per location, its last
+  name being the location VisiLean sends; MRS05 has one, from `MRS05_location.xlsx`): the
+  location picker is then a tree where ticking a level ticks everything under it, and locations
+  missing from the tree sit under "Other locations". Without it the picker is a flat list. The range applies to
   tasks by planned end, to commitments by committed end and to constraints by target date
   (the Calendar relationships); the attribute pickers apply to tasks, to commitments through
   their activity, and to constraints through their linked activity (or their own fields when
@@ -116,7 +120,7 @@ history before its removal on 6 Oct 2026).
   URL hash, so a filtered view can be shared. `calculation.py` derives every per-row flag and
   embeds the rows (`metrics.facts`); `Template/scripts/aggregate.js` re-aggregates them under
   the chosen filter context and never re-derives a flag.
-- **Weekly committed PPC**: activities kept and missed per committed week (`Successful
+- **Weekly committed PPC**: successful and unsuccessful activities per committed week (`Successful
   Task(C)` / `UnSuccessful Task(C)`) as clustered columns on the left count axis, with the
   committed PPC as a line on the right 0-100% axis (the Power BI line-and-clustered-column
   visual); the 85% target and the six-week window are marked. Planned PPC is no longer shown anywhere on the page.
@@ -125,10 +129,10 @@ history before its removal on 6 Oct 2026).
   activities.
 - **Trade performance, last committed week**: committed PPC per trade, or per organisation with
   the toggle (trade is the default), for the latest complete committed week. Three headline numbers (the week's PPC and its change, how many trades sit
-  below the good band, and the share of the week's missed commitments they account for), a bar
+  below the good band, and the share of the week's unsuccessful commitments they account for), a bar
   splitting the trades into good / watch / critical, and the eight below-target trades with the
-  most missed commitments as kept/missed bars. The other trades follow as chips.
-- **Reasons for variance by trade**: the activities that missed a commitment in the range,
+  most unsuccessful commitments as successful/unsuccessful bars. The other trades follow as chips.
+- **Reasons for variance by trade**: the unsuccessful activities in the range,
   stacked per trade by the reason category from their activity history. Activities with no
   recorded reason are left out; the card says how many. Horizontal stacked bars rather than stacked columns, so long trade names
   stay readable; the top eight trades are bars, the rest chips.

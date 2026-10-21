@@ -222,7 +222,7 @@
       { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
       { h: 'Organisation', cell: function (r) { return textCell(r.organisation); } },
       { h: 'Committed week', num: true, cell: function (r) { return el('td', 'num', r.committedWeek ? weekLabel(r.committedWeek) + ' · ' + C.fmtDate(r.committedEnd, true) : '—'); } },
-      { h: 'Result', cell: function (r) { var td = el('td'); if (r.kept === null) td.textContent = '—'; else td.appendChild(pill(r.kept ? 'Kept' : 'Missed', r.kept ? 'good' : 'bad')); return td; } },
+      { h: 'Result', cell: function (r) { var td = el('td'); if (r.kept === null) td.textContent = '—'; else td.appendChild(pill(r.kept ? 'Successful' : 'Unsuccessful', r.kept ? 'good' : 'bad')); return td; } },
       { h: 'Planned end', num: true, cell: function (r) { return dateCell(r.plannedEnd); } },
       { h: 'Actual end', num: true, cell: function (r) { return dateCell(r.actualEnd); } },
       { h: 'Status', cell: function (r) { return statusCell(r.status); } },
@@ -263,7 +263,7 @@
   var CSV = {
     activity: [['Activity ID', 'id'], ['Activity', 'name'], ['Type', 'type'], ['Trade', 'trade'], ['Organisation', 'organisation'], ['Location', 'location'],
                ['Status', 'status'], ['Planned start', 'plannedStart'], ['Planned end', 'plannedEnd'], ['Actual start', 'actualStart'], ['Actual end', 'actualEnd'],
-               ['Committed week', 'committedWeek'], ['Committed end', 'committedEnd'], ['Result', function (r) { return r.kept === null ? '' : (r.kept ? 'Kept' : 'Missed'); }],
+               ['Committed week', 'committedWeek'], ['Committed end', 'committedEnd'], ['Result', function (r) { return r.kept === null ? '' : (r.kept ? 'Successful' : 'Unsuccessful'); }],
                ['Planned duration', 'duration'], ['Delay days', 'delayDays'], ['Delay type', 'delayKind'],
                ['Reason categories', function (r) { return r.categories.join('; '); }], ['Reasons', function (r) { return r.reasons.join('; '); }],
                ['Events', function (r) { return r.events.join('; '); }]],
@@ -654,7 +654,7 @@
     /* ---- 1 · summary ---- */
     h.push(section(1, 'Summary', weekSpan + ' · counts include an activity once for every week it was committed'));
     h.push('<div class="rp-kpis">'
-      + tileHtml(C.fmtPct(lw ? lw.pct : null), 'Last week PPC', lw ? V.tones.lastWeek : 'inert', lw ? weekLabel(LW.week) + ' · ' + C.fmtNum(lw.successful) + ' of ' + C.fmtNum(lw.total) + ' kept' : 'No complete week in the range')
+      + tileHtml(C.fmtPct(lw ? lw.pct : null), 'Last week PPC', lw ? V.tones.lastWeek : 'inert', lw ? weekLabel(LW.week) + ' · ' + C.fmtNum(lw.successful) + ' of ' + C.fmtNum(lw.total) + ' successful' : 'No complete week in the range')
       + tileHtml(C.fmtPct(lastRoll), N + '-week rolling PPC', R.latestTone, 'As of ' + weekLabel(R.weeks[R.weeks.length - 1].week)
           + (firstRoll !== null && lastRoll !== null && R.weeks.length > 1 ? ' · ' + (lastRoll - firstRoll >= 0 ? '▲ ' : '▼ ') + fmtPts(lastRoll - firstRoll) + ' since ' + weekLabel(R.weeks[0].week) : ''))
       + tileHtml(C.fmtNum(total), 'Total tasks', null, 'Committed in ' + weekSpan + ', repeats included')
@@ -694,7 +694,7 @@
     R.trades.forEach(function (t) {
       var c = perTrade[t.trade] || { kept: 0, missed: 0 };
       h.push('<tr><td class="tr" title="' + esc(t.trade) + '">' + esc(t.trade) + '</td>' + t.weeks.map(function (w) {
-        var tip = weekLabel(w.week) + ': rolling ' + C.fmtPct(w.rolling) + (w.total ? ' · this week ' + w.successful + ' of ' + w.total + ' kept' : ' · nothing committed this week');
+        var tip = weekLabel(w.week) + ': rolling ' + C.fmtPct(w.rolling) + (w.total ? ' · this week ' + w.successful + ' of ' + w.total + ' successful' : ' · nothing committed this week');
         return '<td class="' + (w.rolling === null ? 'h-none' : 'h-' + w.tone) + '" title="' + esc(tip) + '">' + esc(w.rolling === null ? '—' : Math.round(w.rolling) + '%') + '</td>';
       }).join('') + '<td class="num sep">' + esc(C.fmtNum(c.kept + c.missed)) + '</td><td class="num">' + esc(C.fmtNum(c.kept)) + '</td><td class="num">' + esc(C.fmtNum(c.missed))
         + '</td><td class="num">' + pillHtml(C.fmtPct(t.latestRolling), t.latestRolling === null ? 'inert' : band(t.latestRolling)) + '</td></tr>');
@@ -829,7 +829,41 @@
   }
 
   function plurals(noun) { return /[^aeiou]y$/.test(noun) ? noun.slice(0, -1) + 'ies' : noun + 's'; }
-  function multiSelect(host, noun, options, selected, onChange) {
+
+  /* A hierarchy for a picker: paths (top level first, the last name being the value in the data,
+     e.g. data.locationTree) -> root nodes { name, value, kids, all }. A node's value is set only
+     where that name is in the options (its first occurrence); `all` is the node's own value plus
+     every value under it. Branches with no data are dropped; options in no path go under `other`. */
+  function buildTree(paths, options, other) {
+    var root = { kids: [] }, byKey = {}, owner = {}, inOpts = {};
+    options.forEach(function (o) { inOpts[o] = 1; });
+    paths.forEach(function (p) {
+      var parent = root, key = '';
+      p.forEach(function (name) {
+        key += '\u0001' + name;
+        var n = byKey[key];
+        if (!n) { n = byKey[key] = { name: name, value: null, kids: [] }; parent.kids.push(n); }
+        parent = n;
+      });
+      var leaf = p[p.length - 1];
+      if (inOpts[leaf] && !owner[leaf]) { owner[leaf] = 1; parent.value = leaf; }
+    });
+    var rest = options.filter(function (o) { return !owner[o]; });
+    if (rest.length) root.kids.push({ name: other, value: null, kids: rest.map(function (o) { return { name: o, value: o, kids: [] }; }) });
+    (function prune(n) {
+      n.kids = n.kids.filter(function (k) { prune(k); return k.all.length; });
+      n.all = [].concat.apply(n.value ? [n.value] : [], n.kids.map(function (k) { return k.all; }));
+    })(root);
+    return root.kids;
+  }
+  /* a child named after its parent shows only its own part: "L0 | IPR | HV A" under "L0 | IPR" -> "HV A" */
+  function shortName(name, parent) {
+    if (!parent || name.length <= parent.length || name.indexOf(parent) !== 0) return name;
+    var s = name.slice(parent.length).replace(/^\s*[|\-–]\s*/, '');
+    return s && s !== name.slice(parent.length) ? s : name;
+  }
+
+  function multiSelect(host, noun, options, selected, onChange, treePaths) {
     var nouns = plurals(noun);
     host.innerHTML = '';
     var btn = el('button', 'ms-btn'); btn.type = 'button'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
@@ -845,15 +879,66 @@
     pop.appendChild(tools); pop.appendChild(list);
     host.appendChild(btn); host.appendChild(pop);
     var state = selected ? Object.assign({}, selected) : null; /* null = all */
+    /* tree mode: open = expanded nodes by path ('/Data Center/NIVEAU 0'); refocus = the control to focus again after a redraw */
+    var tree = treePaths && treePaths.length ? buildTree(treePaths, options, 'Other ' + nouns) : null, open = {}, refocus = null;
+    if (tree) { pop.classList.add('ms-tree'); tree.forEach(function (n) { open['/' + n.name] = 1; }); }
 
+    /* the one tree node whose values are exactly the selection, so the button can name it */
+    function namedNode() {
+      var keys = Object.keys(state), hit = null;
+      (function walk(ns) {
+        ns.forEach(function (n) {
+          if (hit) return;
+          if (n.all.length === keys.length && n.all.every(function (v) { return state[v]; })) hit = n; else walk(n.kids);
+        });
+      })(tree);
+      return hit;
+    }
     function label() {
-      var n = state ? Object.keys(state).length : options.length;
+      var n = state ? Object.keys(state).length : options.length, node = tree && state && n > 1 ? namedNode() : null;
       if (!state) { txt.textContent = 'All ' + nouns; nspan.textContent = C.fmtNum(options.length); btn.classList.remove('active'); }
-      else { txt.textContent = n === 1 ? Object.keys(state)[0] : n + ' ' + nouns; nspan.textContent = 'of ' + C.fmtNum(options.length); btn.classList.add('active'); }
+      else { txt.textContent = node ? node.name : n === 1 ? Object.keys(state)[0] : n + ' ' + nouns; nspan.textContent = (node ? n + ' ' : '') + 'of ' + C.fmtNum(options.length); btn.classList.add('active'); }
+    }
+    function setValues(vals, on) {
+      if (!state) { state = {}; options.forEach(function (x) { state[x] = 1; }); }
+      vals.forEach(function (v) { if (on) state[v] = 1; else delete state[v]; });
+      if (Object.keys(state).length === options.length) state = null;
+      label(); onChange(state);
+    }
+    function drawTree(q) {
+      var any = false;
+      function matches(n) { return n.name.toLowerCase().indexOf(q) >= 0; }
+      function hasMatch(n) { return matches(n) || n.kids.some(hasMatch); }
+      function row(n, path, depth, parentName, shown) {
+        var key = path + '/' + n.name, expanded = !!q || !!open[key];
+        var on = n.all.filter(function (v) { return !state || state[v]; }).length;
+        var r = el('div', 'ms-row'); r.style.paddingLeft = (depth * 16) + 'px';
+        var tw = el('button', 'ms-twist' + (n.kids.length ? '' : ' leaf'), n.kids.length ? (expanded ? '▾' : '▸') : '');
+        tw.type = 'button'; tw.tabIndex = n.kids.length ? 0 : -1;
+        if (n.kids.length) {
+          tw.setAttribute('aria-label', (expanded ? 'Collapse ' : 'Expand ') + n.name);
+          tw.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          /* the redraw detaches this button, so keep the click from reaching the outside-click close */
+          tw.addEventListener('click', function (e) { e.stopPropagation(); if (open[key]) delete open[key]; else open[key] = 1; refocus = 'tw' + key; draw(); });
+        }
+        var lab = el('label'); lab.setAttribute('role', 'option'); lab.title = n.name;
+        var cb = el('input'); cb.type = 'checkbox'; cb.checked = on === n.all.length; cb.indeterminate = on > 0 && on < n.all.length;
+        lab.setAttribute('aria-selected', cb.checked ? 'true' : 'false');
+        cb.addEventListener('change', function () { setValues(n.all, cb.checked); refocus = 'cb' + key; draw(); });
+        lab.appendChild(cb); lab.appendChild(el('span', null, shortName(n.name, parentName)));
+        if (n.kids.length) lab.appendChild(el('span', 'ms-count', C.fmtNum(n.all.length)));
+        r.appendChild(tw); r.appendChild(lab); list.appendChild(r); any = true;
+        if (refocus === 'tw' + key) tw.focus(); else if (refocus === 'cb' + key) cb.focus();
+        if (expanded) n.kids.forEach(function (k) { if (shown || !q || hasMatch(k)) row(k, key, depth + 1, n.name, shown || (!!q && matches(n))); });
+      }
+      tree.forEach(function (n) { if (!q || hasMatch(n)) row(n, '', 0, null, false); });
+      refocus = null;
+      return any;
     }
     function draw() {
       list.innerHTML = '';
       var q = search.value.trim().toLowerCase();
+      if (tree) { if (!drawTree(q)) list.appendChild(el('div', 'ms-empty', 'No ' + noun + ' matches "' + search.value + '".')); return; }
       var shown = options.filter(function (o) { return !q || o.toLowerCase().indexOf(q) >= 0; });
       if (!shown.length) list.appendChild(el('div', 'ms-empty', 'No ' + noun + ' matches "' + search.value + '".'));
       shown.forEach(function (o) {
@@ -968,7 +1053,7 @@
     var pickers = {
       org: multiSelect(document.getElementById('fOrg'), 'organisation', opts.org, S.org, function (s) { S.org = s; apply(); }),
       trade: multiSelect(document.getElementById('fTrade'), 'trade', opts.trade, S.trade, function (s) { S.trade = s; apply(); }),
-      loc: multiSelect(document.getElementById('fLoc'), 'location', opts.loc, S.loc, function (s) { S.loc = s; apply(); }),
+      loc: multiSelect(document.getElementById('fLoc'), 'location', opts.loc, S.loc, function (s) { S.loc = s; apply(); }, data.locationTree),
       cat: multiSelect(document.getElementById('fCat'), 'category', opts.cat, S.cat, function (s) { S.cat = s; apply(); }),
       ctrade: multiSelect(document.getElementById('fCTrade'), 'trade', opts.ctrade, S.ctrade, function (s) { S.ctrade = s; apply(); }),
       cown: multiSelect(document.getElementById('fCOwn'), 'owner', opts.cown, S.cown, function (s) { S.cown = s; apply(); })
@@ -1075,16 +1160,16 @@
       showLabels: true,
       emptyText: hasCommitted ? 'No commitments end in the selected range.' : 'No commitment feed is configured for this project.',
       columns: [
-        { name: 'Kept', cls: 'kept', values: weeks.map(function (w) { return w.committed ? w.committed.successful : null; }),
-          tips: weeks.map(function (w) { var c = w.committed || {}; return weekLabel(w.week) + ' (' + fmtRange(w.start, w.end) + '): ' + C.fmtNum(c.successful) + ' kept of ' + C.fmtNum(c.total) + ' committed'; }),
-          picks: weeks.map(function (w) { return w.committed && w.committed.successful ? lister({ type: 'commits', week: w.week, ok: true }, 'Kept commitments, ' + weekLabel(w.week), fmtRange(w.start, w.end) + ' · finished in the committed week') : null; }) },
-        { name: 'Missed', cls: 'missed', values: weeks.map(function (w) { return w.committed ? w.committed.unsuccessful : null; }),
-          tips: weeks.map(function (w) { var c = w.committed || {}; return weekLabel(w.week) + ' (' + fmtRange(w.start, w.end) + '): ' + C.fmtNum(c.unsuccessful) + ' missed of ' + C.fmtNum(c.total) + ' committed'; }),
-          picks: weeks.map(function (w) { return w.committed && w.committed.unsuccessful ? lister({ type: 'commits', week: w.week, ok: false }, 'Missed commitments, ' + weekLabel(w.week), fmtRange(w.start, w.end) + ' · not finished in the committed week') : null; }) }
+        { name: 'Successful', cls: 'kept', values: weeks.map(function (w) { return w.committed ? w.committed.successful : null; }),
+          tips: weeks.map(function (w) { var c = w.committed || {}; return weekLabel(w.week) + ' (' + fmtRange(w.start, w.end) + '): ' + C.fmtNum(c.successful) + ' successful of ' + C.fmtNum(c.total) + ' committed'; }),
+          picks: weeks.map(function (w) { return w.committed && w.committed.successful ? lister({ type: 'commits', week: w.week, ok: true }, 'Successful commitments, ' + weekLabel(w.week), fmtRange(w.start, w.end) + ' · finished in the committed week') : null; }) },
+        { name: 'Unsuccessful', cls: 'missed', values: weeks.map(function (w) { return w.committed ? w.committed.unsuccessful : null; }),
+          tips: weeks.map(function (w) { var c = w.committed || {}; return weekLabel(w.week) + ' (' + fmtRange(w.start, w.end) + '): ' + C.fmtNum(c.unsuccessful) + ' unsuccessful of ' + C.fmtNum(c.total) + ' committed'; }),
+          picks: weeks.map(function (w) { return w.committed && w.committed.unsuccessful ? lister({ type: 'commits', week: w.week, ok: false }, 'Unsuccessful commitments, ' + weekLabel(w.week), fmtRange(w.start, w.end) + ' · not finished in the committed week') : null; }) }
       ],
       line: { name: 'Committed PPC', cls: 'ppc', values: weeks.map(function (w) { return w.committed && w.committed.total ? w.committed.pct : null; }),
               tips: weeks.map(function (w) { var c = w.committed || {}; return 'Committed PPC ' + weekLabel(w.week) + ': ' + C.fmtPct(c.pct) + ' (' + C.fmtNum(c.successful) + ' of ' + C.fmtNum(c.total) + ')'; }),
-              picks: weeks.map(function (w) { return w.committed && w.committed.total ? lister({ type: 'commits', week: w.week }, 'Commitments, ' + weekLabel(w.week), fmtRange(w.start, w.end) + ' · ' + C.fmtPct(w.committed.pct) + ' kept') : null; }) },
+              picks: weeks.map(function (w) { return w.committed && w.committed.total ? lister({ type: 'commits', week: w.week }, 'Commitments, ' + weekLabel(w.week), fmtRange(w.start, w.end) + ' · ' + C.fmtPct(w.committed.pct) + ' successful') : null; }) },
       target: data.ppc.targetPct
     };
     C.comboChart(document.getElementById('ppcChart'), ppcSpec);
@@ -1108,9 +1193,9 @@
       pt.appendChild(tr);
     });
     var lg = document.getElementById('ppcLegend'); lg.innerHTML = '';
-    [['sq kept', 'Kept (finished in the committed week)'], ['sq missed', 'Missed'], ['', 'Committed PPC'], ['target', 'Target ' + C.fmtPct(data.ppc.targetPct)], ['band', 'Last six weeks']]
+    [['sq kept', 'Successful (finished in the committed week)'], ['sq missed', 'Unsuccessful'], ['', 'Committed PPC'], ['target', 'Target ' + C.fmtPct(data.ppc.targetPct)], ['band', 'Last six weeks']]
       .forEach(function (k) { var s = el('span'); s.appendChild(el('span', 'key ' + k[0])); s.appendChild(document.createTextNode(k[1])); lg.appendChild(s); });
-    setText('ppcDesc', 'Activities per committed week, ' + rangeText + ' · ' + (hasCommitted ? C.fmtNum(V.committedAll.successful) + ' kept, ' + C.fmtNum(V.committedAll.unsuccessful) + ' missed' : 'no commitment feed'));
+    setText('ppcDesc', 'Activities per committed week, ' + rangeText + ' · ' + (hasCommitted ? C.fmtNum(V.committedAll.successful) + ' successful, ' + C.fmtNum(V.committedAll.unsuccessful) + ' unsuccessful' : 'no commitment feed'));
 
     /* ---- last six weeks tiles (range ∩ window, as CALCULATE(..., IsLastSixWeeks) does) ---- */
     setText('l6wDesc', V.l6w.valid
@@ -1121,7 +1206,7 @@
         var LW = V.tradePerformance, has = !!(LW && LW.week), o = has ? LW.overall : null, po = has ? LW.previousOverall : null;
         var d = o && po && po.total && o.pct !== null && po.pct !== null ? Math.round((o.pct - po.pct) * 10) / 10 : null;
         return { label: 'Last week PPC', value: C.fmtPct(o ? o.pct : null), tone: TN.lastWeek,
-                 sub: has ? weekLabel(LW.week) + ' · ' + C.fmtNum(o.successful) + ' of ' + C.fmtNum(o.total) + ' kept' + (d === null ? '' : ' · ' + (d >= 0 ? '▲ ' : '▼ ') + fmtPts(d) + ' on ' + weekLabel(LW.previousWeek))
+                 sub: has ? weekLabel(LW.week) + ' · ' + C.fmtNum(o.successful) + ' of ' + C.fmtNum(o.total) + ' successful' + (d === null ? '' : ' · ' + (d >= 0 ? '▲ ' : '▼ ') + fmtPts(d) + ' on ' + weekLabel(LW.previousWeek))
                           : (hasCommitted ? 'No complete committed week in the range' : 'No commitment feed is configured'),
                  pick: has ? lister({ type: 'commits', week: LW.week }, 'Commitments, last committed week', weekLabel(LW.week) + ', ' + fmtRange(LW.start, LW.end)) : null };
       })(),
@@ -1173,16 +1258,16 @@
       var ovTone = ov.pct === null ? 'inert' : (ov.pct >= goodBand ? 'good' : (ov.pct >= watchBand ? 'warn' : 'bad'));
       [
         { v: C.fmtPct(ov.pct), l: 'Committed PPC', cls: 'tone-text-' + ovTone, pick: lister({ type: 'commits', week: TP.week }, 'Commitments, ' + wk, wkSub),
-          s: C.fmtNum(ov.successful) + ' of ' + C.fmtNum(ov.total) + ' kept' + (dOv === null ? '' : ' · ' + (dOv >= 0 ? '▲ ' : '▼ ') + fmtPts(dOv) + ' on ' + weekLabel(TP.previousWeek)) },
+          s: C.fmtNum(ov.successful) + ' of ' + C.fmtNum(ov.total) + ' successful' + (dOv === null ? '' : ' · ' + (dOv >= 0 ? '▲ ' : '▼ ') + fmtPts(dOv) + ' on ' + weekLabel(TP.previousWeek)) },
         { v: C.fmtNum(below.length) + ' / ' + C.fmtNum(TP.groups), l: Noun + 's below ' + C.fmtPct(goodBand), cls: 'tone-text-' + (below.length ? 'warn' : 'good'),
           pick: grp(labelsOf(below), null, 'Commitments of ' + noun + 's below ' + C.fmtPct(goodBand)),
           s: C.fmtPct(TP.groups ? 100 * below.length / TP.groups : null) + ' of ' + noun + 's with commitments' },
         { v: C.fmtNum(TP.critical), l: 'Critical, under ' + C.fmtPct(watchBand), cls: 'tone-text-' + (TP.critical ? 'bad' : 'good'),
           pick: grp(labelsOf(critical), null, 'Commitments of ' + noun + 's in the critical band'),
-          s: TP.critical ? plural(TP.critical, noun) + ' kept less than ' + C.fmtPct(watchBand) : 'no ' + noun + ' in the critical band' },
-        { v: C.fmtNum(missedBelow) + ' / ' + C.fmtNum(ov.unsuccessful), l: 'Missed by those ' + noun + 's', cls: '',
-          pick: missedBelow ? grp(labelsOf(below), false, 'Missed commitments of ' + noun + 's below ' + C.fmtPct(goodBand)) : null,
-          s: ov.unsuccessful ? C.fmtPct(100 * missedBelow / ov.unsuccessful) + ' of the week\'s missed commitments' : 'nothing was missed this week' }
+          s: TP.critical ? plural(TP.critical, noun) + ' successful on less than ' + C.fmtPct(watchBand) : 'no ' + noun + ' in the critical band' },
+        { v: C.fmtNum(missedBelow) + ' / ' + C.fmtNum(ov.unsuccessful), l: 'Unsuccessful by those ' + noun + 's', cls: '',
+          pick: missedBelow ? grp(labelsOf(below), false, 'Unsuccessful commitments of ' + noun + 's below ' + C.fmtPct(goodBand)) : null,
+          s: ov.unsuccessful ? C.fmtPct(100 * missedBelow / ov.unsuccessful) + ' of the week\'s unsuccessful commitments' : 'nothing was unsuccessful this week' }
       ].forEach(function (d) {
         var b = el('div', 'tp-stat');
         b.appendChild(el('div', 'tp-stat-v ' + d.cls, d.v));
@@ -1204,17 +1289,17 @@
       /* the groups that cost the most: below target, ranked by commitments missed, then by PPC */
       var ranked = below.slice().sort(function (x, y) { return y.unsuccessful - x.unsuccessful || (x.pct || 0) - (y.pct || 0) || x.label.localeCompare(y.label); });
       var top = ranked.slice(0, 8), others = ranked.slice(8);
-      setText('tradeBarsTitle', below.length ? 'Below target, most missed commitments first' : 'Every ' + noun + ' kept at least ' + C.fmtPct(goodBand) + ' of its commitments');
+      setText('tradeBarsTitle', below.length ? 'Below target, most unsuccessful commitments first' : 'Every ' + noun + ' was successful on at least ' + C.fmtPct(goodBand) + ' of its commitments');
       if (top.length) {
         C.barRows(bars, top.map(function (r) {
           var change = r.delta === null ? (r.previousTotal ? '' : ', nothing committed the week before')
             : ', ' + (r.delta >= 0 ? 'up ' : 'down ') + fmtPts(r.delta) + ' on ' + weekLabel(TP.previousWeek);
           return { label: r.label, total: r.total,
-                   title: r.label + ': ' + C.fmtPct(r.pct) + ', ' + r.unsuccessful + ' of ' + r.total + ' missed' + change,
+                   title: r.label + ': ' + C.fmtPct(r.pct) + ', ' + r.unsuccessful + ' of ' + r.total + ' unsuccessful' + change,
                    valueText: toneIcon(r.tone) + ' ' + C.fmtPct(r.pct) + ' · ' + r.successful + '/' + r.total, valueCls: 'tone-text-' + r.tone,
                    pick: grp([r.label], null, r.label + ': commitments, ' + wk),
-                   parts: [{ count: r.successful, cls: 's-ok', label: 'Kept', pick: grp([r.label], true, r.label + ': kept commitments, ' + wk) },
-                           { count: r.unsuccessful, cls: 's-fail', label: 'Missed', pick: grp([r.label], false, r.label + ': missed commitments, ' + wk) }] };
+                   parts: [{ count: r.successful, cls: 's-ok', label: 'Successful', pick: grp([r.label], true, r.label + ': successful commitments, ' + wk) },
+                           { count: r.unsuccessful, cls: 's-fail', label: 'Unsuccessful', pick: grp([r.label], false, r.label + ': unsuccessful commitments, ' + wk) }] };
         }), { rowCls: 'tp-row' });
       }
       function chipGroup(title, list) {
@@ -1225,7 +1310,7 @@
         list.forEach(function (r) {
           cs.appendChild(chip(r.label, C.fmtPct(r.pct) + ' · ' + r.successful + '/' + r.total,
             r.tone === 'bad' ? 's-fail' : (r.tone === 'warn' ? 's-warning' : 's-ok'),
-            r.label + ' (' + TONE_WORD[r.tone] + '): ' + r.successful + ' of ' + r.total + ' kept' + (r.previousTotal ? ', ' + C.fmtPct(r.previousPct) + ' the week before' : ''),
+            r.label + ' (' + TONE_WORD[r.tone] + '): ' + r.successful + ' of ' + r.total + ' successful' + (r.previousTotal ? ', ' + C.fmtPct(r.previousPct) + ' the week before' : ''),
             grp([r.label], null, r.label + ': commitments, ' + wk)));
         });
         wrap.appendChild(cs);
@@ -1250,15 +1335,15 @@
     var RB = V.reasonsByTrade;
     var rbtBars = document.getElementById('rbtBars'), rbtOthers = document.getElementById('rbtOthers'), rbtLegend = document.getElementById('rbtLegend');
     rbtOthers.innerHTML = ''; rbtLegend.innerHTML = '';
-    var noReasonNote = RB && RB.withoutReason ? C.fmtNum(RB.withoutReason) + ' of ' + C.fmtNum(RB.missed) + ' missed activities have no recorded reason and are left out' : '';
+    var noReasonNote = RB && RB.withoutReason ? C.fmtNum(RB.withoutReason) + ' of ' + C.fmtNum(RB.missed) + ' unsuccessful activities have no recorded reason and are left out' : '';
     if (!RB || !RB.activities) {
-      setText('rbtDesc', !hasCommitted ? 'no commitment feed' : (RB && RB.missed ? noReasonNote : 'No missed commitments in the selected range'));
+      setText('rbtDesc', !hasCommitted ? 'no commitment feed' : (RB && RB.missed ? noReasonNote : 'No unsuccessful commitments in the selected range'));
       ensureListBtn('rbtDesc', null);
       rbtBars.innerHTML = ''; rbtBars.appendChild(el('div', 'empty', !hasCommitted ? 'No commitment feed is configured for this project.'
-        : (RB && RB.missed ? 'None of the activities that missed a commitment in the selected range has a reason recorded in its history.' : 'No activity missed a commitment in the selected range.')));
+        : (RB && RB.missed ? 'None of the unsuccessful activities in the selected range has a reason recorded in its history.' : 'No unsuccessful activities in the selected range.')));
       rbtOthers.hidden = true; document.getElementById('rbtHr').hidden = true;
     } else {
-      setText('rbtDesc', C.fmtNum(RB.activities) + ' activities with a recorded reason missed a commitment in ' + rangeText + (noReasonNote ? ' · ' + noReasonNote : ''));
+      setText('rbtDesc', C.fmtNum(RB.activities) + ' unsuccessful activities with a recorded reason in ' + rangeText + (noReasonNote ? ' · ' + noReasonNote : ''));
       var legendOrder = [];
       function foldParts(parts) {
         var m = {};
@@ -1277,13 +1362,13 @@
         var spec = { type: 'missed' };
         if (trade) { spec.by = 'trade'; spec.groups = [trade]; }
         if (k) spec.categories = rawCats(k);
-        return lister(spec, (trade ? trade + ': ' : '') + (k ? k + ', ' : '') + 'missed activities with a recorded reason', rangeText);
+        return lister(spec, (trade ? trade + ': ' : '') + (k ? k + ', ' : '') + 'unsuccessful activities with a recorded reason', rangeText);
       }
       ensureListBtn('rbtDesc', missedList(null, null));
       C.barRows(rbtBars, top.map(function (r) {
         var parts = foldParts(r.parts).map(function (p) { p.pick = missedList(r.trade, p.label); return p; });
         return { label: r.trade, total: r.activities, valueText: C.fmtNum(r.activities), parts: parts, pick: missedList(r.trade, null) };
-      }), { emptyText: 'No activity missed a commitment in the selected range.' });
+      }), { emptyText: 'No unsuccessful activities in the selected range.' });
       rbtOthers.hidden = !rest.length; document.getElementById('rbtHr').hidden = !rest.length;
       rest.forEach(function (r) { rbtOthers.appendChild(chip(r.trade, r.activities, null, r.parts.map(function (p) { return p.label + ' ' + p.count; }).join(', '), missedList(r.trade, null))); });
       legendOrder.forEach(function (k) { rbtLegend.appendChild(chip(k, folded[k], ctx.catCls(k), k === 'Other categories' ? 'Categories outside the eight most frequent' : null, missedList(null, k))); });
