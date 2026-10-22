@@ -225,10 +225,32 @@ def _high_risk(r: dict, data: dict) -> list[str] | None:
     return types or [hr.get("unspecifiedLabel", "Type not recorded")]
 
 
+def _prerequisites(r: dict, catalogue: dict) -> list[str] | None:
+    """Selected prerequisites of a task row: the "prerequisites" list, an item selected when its
+    enable (or makeReady) flag is set; in sortIndex order. Every name seen goes into catalogue
+    (name -> sortIndex), so the page can show the ones nobody selected. None when the row has no list."""
+    items = r.get("prerequisites")
+    if not isinstance(items, list):
+        return None
+    chosen = []
+    for p in items:
+        if not isinstance(p, dict):
+            continue
+        name = _text(p.get("prerequisiteName"))
+        if not name:
+            continue
+        idx = p.get("sortIndex") if isinstance(p.get("sortIndex"), (int, float)) else 999
+        catalogue[name] = min(catalogue.get(name, idx), idx)
+        if p.get("enable") or p.get("makeReady"):
+            chosen.append((idx, name))
+    return [n for _, n in sorted(set(chosen))]
+
+
 def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
     types = set(_get(data, "taskTypes", ["Construction", "Design"]) or [])
     by_guid: "OrderedDict[str, dict]" = OrderedDict()
     excluded: dict[str, int] = {}
+    catalogue: dict[str, float] = {}
     history_rows = 0
     for r in raw or []:
         if not isinstance(r, dict):
@@ -272,6 +294,7 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
                 "categories": set(),
                 "events": set(),
                 "highRisk": None,
+                "prerequisites": None,
             }
             # Planned_PPC: finished in the same ISO week it was planned to finish
             t["plannedPPC"] = bool(t["actualWeek"] and t["actualWeek"] == t["plannedWeek"])
@@ -281,12 +304,15 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
             t["categories"].add(category)
         if event:
             t["events"].add(event)
+        if t["prerequisites"] is None:
+            t["prerequisites"] = _prerequisites(r, catalogue)
         if t["highRisk"] is None and r.get("customField"):
             t["highRisk"] = _high_risk(r, data)
     tasks = list(by_guid.values())
     for t in tasks:
         t["reasons"], t["categories"], t["events"] = sorted(t["reasons"]), sorted(t["categories"]), sorted(t["events"])
-    return tasks, {"rows": len(raw or []), "historyRows": history_rows, "excludedByType": excluded}
+    return tasks, {"rows": len(raw or []), "historyRows": history_rows, "excludedByType": excluded,
+                   "prerequisites": sorted(catalogue, key=lambda n: (catalogue[n], n))}
 
 
 def _commit_rows(raw) -> list[dict]:
@@ -951,7 +977,8 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
                    ps/pe planned start/end, as/ae actual start/end, pw planned week, d planned
                    duration, rs reasons, cs reason categories, ss standard groups, ev events,
                    dl Delay, dd DelayDays, dk delay kind, due/late the %Activity_Delayed flags,
-                   hr high-risk types (only on flagged activities; see data.highRisk)
+                   hr high-risk types (only on flagged activities; see data.highRisk),
+                   pq selected prerequisites (only when any; facts.prerequisites lists every name in the feed)
       commitments  g guid, cw committed week, ce committed end, ok Custom_CommittedPPC, a auto, ln linked
       constraints  u UniqueID, t title, c category, p priority, ow owner, oo owner organisation, l location,
                    tr trade, cr creation, tg target, cm commitment, cp completion, s status,
@@ -965,6 +992,8 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
                "pw": t["plannedWeek"], "d": t["plannedDuration"],
                "rs": t["reasons"], "cs": t["categories"], "ss": _standard_groups(t["reasons"], data), "ev": t["events"],
                "dl": d["delay"], "dd": d["delayDays"], "dk": d["delayKind"], "due": d["dueForPct"], "late": d["delayedForPct"]}
+        if t.get("prerequisites"):
+            row["pq"] = t["prerequisites"]
         if t.get("highRisk"):
             row["hr"] = t["highRisk"]
         tasks.append(row)
@@ -981,7 +1010,8 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
     return {"today": today.isoformat(),
             "window": {"from": window[0].isoformat(), "to": window[1].isoformat()},
             "trend": {"from": spans[0][0].isoformat(), "to": spans[-1][1].isoformat()},
-            "tasks": tasks, "commitments": comms, "constraints": cons}
+            "tasks": tasks, "commitments": comms, "constraints": cons,
+            "prerequisites": model.get("feed", {}).get("prerequisites") or []}
 
 
 # --------------------------------------------------------------------------- compute

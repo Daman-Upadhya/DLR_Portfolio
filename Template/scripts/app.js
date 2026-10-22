@@ -259,13 +259,48 @@
     [/not recorded|unspecified/i, '<circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1v.4"/><path d="M8 11.4v.1"/>']
   ];
   var RISK_DEFAULT_ICON = '<path d="M8 1.8 14.6 13.5H1.4Z"/><path d="M8 6.2v3.3"/><path d="M8 11.6v.1"/>';
+  /* the client's icon set (Template/assets/risk/<slug>.png, embedded by the build as D.riskIcons), matched on
+     the type's words; a type with no image falls back to the drawn icons above */
+  var RISK_IMAGES = D.riskIcons || {};
+  var RISK_IMAGE_MATCH = [
+    [/lock.?out|tag.?out|loto|consign/i, 'lockout-tagout'],
+    [/height|hauteur|ladder|scaffold|echafaud|nacelle|mewp/i, 'work-at-height'],
+    [/hot|weld|soud|flame|fire|feu/i, 'hot-work'],
+    [/excavat|trench|terrass|dig|fouille/i, 'excavation'],
+    [/confined|confin/i, 'confined-space'],
+    [/lift|crane|levage|grue|hoist/i, 'lifting'],
+    [/electr|energi/i, 'electrical'],
+    [/noise|bruit|sound/i, 'noise'],
+    [/material|handling|manutention/i, 'material-handling'],
+    [/chemic|hazard|substance|coshh|toxic|produit/i, 'chemicals'],
+    [/vehicle|traffic|engin|movement/i, 'vehicle-movements'],
+    [/guard|protective|protection/i, 'safety-guards']
+  ];
   function riskIcon(type, small) {
+    for (var j = 0; j < RISK_IMAGE_MATCH.length; j++) {
+      var src = RISK_IMAGE_MATCH[j][0].test(type || '') && RISK_IMAGES[RISK_IMAGE_MATCH[j][1]];
+      if (src) {
+        var w = el('span', 'risk-ic img' + (small ? ' sm' : ''));
+        var im = document.createElement('img'); im.src = src; im.alt = ''; w.appendChild(im);
+        w.title = type;
+        return w;
+      }
+    }
     var body = RISK_DEFAULT_ICON;
     for (var i = 0; i < RISK_ICONS.length; i++) if (RISK_ICONS[i][0].test(type || '')) { body = RISK_ICONS[i][1]; break; }
     var s = el('span', 'risk-ic' + (small ? ' sm' : ''));
     s.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + '</svg>';
     s.title = type;
     return s;
+  }
+  /* a look-ahead date: the date the activity counts on, and the planned date it was carried from */
+  function carriedCell(eff, planned, carried, what) {
+    var td = dateCell(eff);
+    if (carried) {
+      td.appendChild(el('div', 'cell-note tone-text-bad', 'planned ' + C.fmtDate(planned, true) + ', carried over'));
+      td.title = 'Planned ' + what + ' ' + C.fmtDate(planned, true) + ' has passed with no actual ' + what + ': carried into the look-ahead';
+    }
+    return td;
   }
   function riskTypesCell(types) {
     var td = el('td'), w = el('div', 'risk-cell');
@@ -307,9 +342,11 @@
           return td; } },
       { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
       { h: 'Organisation', cell: function (r) { return textCell(r.organisation); } },
-      { h: 'Planned start', num: true, cell: function (r) { return dateCell(r.plannedStart); } },
-      { h: 'Planned end', num: true, cell: function (r) { return dateCell(r.plannedEnd); } },
+      { h: 'Start', num: true, cell: function (r) { return carriedCell(r.effStart, r.plannedStart, r.lateStart, 'start'); } },
+      { h: 'End', num: true, cell: function (r) { return carriedCell(r.effEnd, r.plannedEnd, r.lateEnd, 'end'); } },
       { h: 'Status', cell: function (r) { return statusCell(r.status); } },
+      { h: 'Prerequisites', cell: function (r) {
+          return r.prerequisites.length ? textCell(r.prerequisites.join(', ')) : el('td', 'tone-text-bad', 'None selected'); } },
       { h: 'Constraints', cell: function (r) {
           var td = el('td');
           if (!r.consTotal) { td.textContent = '—'; return td; }
@@ -359,9 +396,10 @@
                ['Reason categories', function (r) { return r.categories.join('; '); }], ['Reasons', function (r) { return r.reasons.join('; '); }],
                ['Events', function (r) { return r.events.join('; '); }]],
     lookahead: [['Activity ID', 'id'], ['Activity', 'name'], ['Type', 'type'], ['Trade', 'trade'], ['Organisation', 'organisation'], ['Location', 'location'],
-                ['Status', 'status'], ['Planned start', 'plannedStart'], ['Planned end', 'plannedEnd'], ['Look-ahead week', function (r) { return weekLabel(r.lookWeek); }],
+                ['Status', 'status'], ['Planned start', 'plannedStart'], ['Planned end', 'plannedEnd'], ['Look-ahead start', 'effStart'], ['Look-ahead end', 'effEnd'],
+                ['Carried over', function (r) { return [r.lateStart ? 'start' : null, r.lateEnd ? 'end' : null].filter(Boolean).join(' and '); }], ['Look-ahead week', function (r) { return weekLabel(r.lookWeek); }],
                 ['Linked constraints', 'consTotal'], ['Open constraints', 'consOpen'], ['Overdue constraints', 'consOverdue'], ['Next constraint target', 'nextTarget'],
-                ['Open constraint titles', function (r) { return r.consTitles.join('; '); }], ['High-risk types', function (r) { return r.riskTypes.join('; '); }]],
+                ['Open constraint titles', function (r) { return r.consTitles.join('; '); }], ['Prerequisites selected', function (r) { return r.prerequisites.join('; '); }], ['High-risk types', function (r) { return r.riskTypes.join('; '); }]],
     risk: [['Activity ID', 'id'], ['Activity', 'name'], ['High-risk types', function (r) { return r.riskTypes.join('; '); }], ['Type', 'type'], ['Trade', 'trade'],
            ['Organisation', 'organisation'], ['Location', 'location'], ['Status', 'status'], ['Planned start', 'plannedStart'], ['Start (in progress from today)', 'effStart'],
            ['Planned end', 'plannedEnd'], ['Actual start', 'actualStart'],
@@ -1258,10 +1296,79 @@
   /* ========================================================== Look-ahead page */
   var laHeatAll = false; /* the trade x week grid shows the 15 trades with the most starts until expanded */
   var LA_HEAT_ROWS = 15;
-  var LA_GROUP_INFO = [['complete', 'Complete'], ['inProgress', 'In progress'], ['issue', 'Stopped / rejected'], ['ready', 'Ready'], ['notStarted', 'Not ready']];
+  var LA_GROUP_INFO = [['inProgress', 'In progress'], ['issue', 'Stopped / rejected'], ['ready', 'Ready'], ['notStarted', 'Not ready']];
   var LA_CSTATES = [['overdue', 'Open, overdue constraints', 'c-overdue'], ['open', 'Open constraints, not yet due', 'c-open'],
                     ['closed', 'Constraints all closed', 'c-closed'], ['none', 'No linked constraints', 'c-none']];
   function pctTone(v) { return v === null || v === undefined ? null : v >= 80 ? 'good' : v >= 50 ? 'warn' : 'bad'; }
+  /* trade x prerequisite: look-ahead activities with each prerequisite selected, and with none */
+  var laPqAll = false;
+  var PQ_TICK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
+  function renderPrereq(L, ll, redraw) {
+    var P = L.prereq, card = document.getElementById('laPqCard');
+    card.hidden = !P.available;
+    if (!P.available) return;
+    var chips = document.getElementById('laPqChips'); chips.innerHTML = '';
+    chips.appendChild(chip('With a prerequisite selected', P.withAny, 'c-closed', null, P.withAny ? ll({ pq: 'any' }, 'Look-ahead activities with a prerequisite selected') : null));
+    chips.appendChild(chip('None selected', P.none, 'c-overdue', null, P.none ? ll({ pq: 'none' }, 'Look-ahead activities with no prerequisite selected') : null));
+    var never = P.names.filter(function (x) { return !P.totals[x]; });
+    if (never.length) chips.appendChild(chip('Never selected: ' + never.join(', '), null, 'c-none', 'Prerequisites available in VisiLean that no look-ahead activity has selected'));
+    setText('laPqDesc', C.fmtPct(P.anyPct) + ' of ' + plural(L.total, 'look-ahead activity', 'look-ahead activities') + ' have at least one prerequisite selected');
+    ensureListBtn('laPqDesc', L.total ? ll({}, 'Look-ahead activities and their prerequisites') : null);
+    var host = document.getElementById('laPq'), more = document.getElementById('laPqMore'), key = document.getElementById('laPqKey');
+    host.innerHTML = ''; key.innerHTML = '';
+    if (!P.byTrade.length) { host.appendChild(el('p', 'empty', 'No look-ahead activities in the selected range.')); more.hidden = true; return; }
+    var tbl = el('table', 'heat'), thead = el('thead'), hr = el('tr');
+    hr.appendChild(el('th', null, ''));
+    P.names.forEach(function (x) {
+      var th = el('th'), box = el('div', 'ht-type'), ic = el('span', 'pq-ic' + (P.totals[x] ? '' : ' never'));
+      ic.innerHTML = PQ_TICK; box.appendChild(ic); box.appendChild(el('span', null, x));
+      box.title = x + ': selected on ' + plural(P.totals[x], 'activity', 'activities');
+      if (P.totals[x]) makePick(box, ll({ pq: x }, x + ': selected'), false);
+      th.appendChild(box); hr.appendChild(th);
+    });
+    var nh = el('th', 'none-col'), nb = el('div', 'ht-type'); nb.appendChild(el('strong', null, 'None')); nb.appendChild(el('span', null, 'selected'));
+    nh.appendChild(nb); hr.appendChild(nh);
+    hr.appendChild(el('th', 'num', 'Activities'));
+    thead.appendChild(hr); tbl.appendChild(thead);
+    var tb = el('tbody');
+    function cell(v, cls, title, pick) {
+      var td = el('td', 'hc' + (cls ? ' ' + cls : '') + (v ? '' : ' zero'), v ? C.fmtNum(v) : '·');
+      if (v) {
+        if (!cls) {
+          var p = P.max ? v / P.max : 0;
+          td.style.background = 'color-mix(in srgb, var(--risk) ' + Math.round(14 + 80 * p) + '%, var(--card))';
+          if (p > 0.55) td.classList.add('hot');
+        }
+        td.title = title; makePick(td, pick, false);
+      }
+      return td;
+    }
+    (laPqAll ? P.byTrade : P.byTrade.slice(0, LA_HEAT_ROWS)).forEach(function (row) {
+      var tr = el('tr'), name = el('th', 'ht-trade', row.trade);
+      makePick(name, ll({ trade: row.trade }, row.trade + ': look-ahead activities'), false);
+      tr.appendChild(name);
+      P.names.forEach(function (x) {
+        var v = row.cells[x] || 0;
+        tr.appendChild(cell(v, null, row.trade + ' · ' + x + ': selected on ' + plural(v, 'activity', 'activities') + ' of ' + row.total,
+          ll({ trade: row.trade, pq: x }, row.trade + ' · ' + x + ' selected')));
+      });
+      tr.appendChild(cell(row.none, 'none-col', row.trade + ': ' + plural(row.none, 'activity', 'activities') + ' with no prerequisite selected',
+        ll({ trade: row.trade, pq: 'none' }, row.trade + ': no prerequisite selected')));
+      var tot = el('td', 'hc tot', C.fmtNum(row.total)); makePick(tot, ll({ trade: row.trade }, row.trade + ': look-ahead activities'), false); tr.appendChild(tot);
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    var tf = el('tfoot'), fr = el('tr'); fr.appendChild(el('th', null, 'All trades'));
+    P.names.forEach(function (x) { fr.appendChild(el('td', 'hc', C.fmtNum(P.totals[x]))); });
+    fr.appendChild(el('td', 'hc', C.fmtNum(P.none))); fr.appendChild(el('td', 'hc', C.fmtNum(L.total)));
+    tf.appendChild(fr); tbl.appendChild(tf); host.appendChild(tbl);
+    more.hidden = P.byTrade.length <= LA_HEAT_ROWS;
+    more.textContent = laPqAll ? 'Show the top ' + LA_HEAT_ROWS + ' trades' : 'Show all ' + C.fmtNum(P.byTrade.length) + ' trades';
+    more.onclick = function () { laPqAll = !laPqAll; redraw(); };
+    key.appendChild(el('span', null, '1')); key.appendChild(el('span', 'heat-ramp')); key.appendChild(el('span', null, C.fmtNum(P.max)));
+    key.appendChild(el('span', null, '· activities with the prerequisite selected. An activity with several counts under each; None = nothing selected.'));
+  }
+
   function renderLookahead(V, S, rangeText, ctx) {
     var L = V.lookahead, UN = V.sets.UN;
     function ll(spec, title, sub) { spec.type = 'lookahead'; return lister(spec, title, sub || rangeText); }
@@ -1269,7 +1376,8 @@
       var sp = ctx.laSpan(Number(b.getAttribute('data-weeks')));
       b.setAttribute('aria-pressed', S.from === sp.from && S.to === sp.to ? 'true' : 'false');
     });
-    setText('laDesc', plural(L.weeks.length, 'week') + ', ' + rangeText + ' · activities whose planned start or planned end falls in the range, each in the week it starts');
+    setText('laDesc', plural(L.weeks.length, 'week') + ', ' + rangeText + ' · open activities (complete and quality-checked left out) whose planned start or planned end falls in the range, each in the week it starts'
+      + (L.carried ? ' · ' + plural(L.carried, 'overdue activity', 'overdue activities') + ' carried into ' + weekLabel(L.weeks.length ? L.weeks[0].week : null) : ''));
 
     /* ---- tiles ---- */
     var k = document.getElementById('laKpis'); k.innerHTML = '';
@@ -1278,6 +1386,9 @@
         pick: L.total ? ll({}, 'Look-ahead activities') : null },
       { label: 'Planned to start', value: C.fmtNum(L.starting), sub: C.fmtNum(L.finishing) + ' planned to finish in the range',
         pick: L.starting ? ll({ pred: 'starting' }, 'Activities planned to start') : null },
+      { label: 'Carried over', value: C.fmtNum(L.carried), tone: L.carried ? 'warn' : 'good', toneLabel: L.carried ? 'Overdue' : 'None',
+        sub: C.fmtNum(L.carriedStart) + ' not started, ' + C.fmtNum(L.carriedEnd) + ' not finished, past their planned date' + (L.rollTo ? ' · counted from ' + C.fmtDate(L.rollTo, true) : ''),
+        pick: L.carried ? ll({ pred: 'carried' }, 'Activities carried over', 'Planned date passed with no actual date · counted from ' + C.fmtDate(L.rollTo, true)) : null },
       { label: 'Ready to start', value: C.fmtPct(L.readyPct), tone: pctTone(L.readyPct), sub: C.fmtNum(L.ready) + ' of ' + C.fmtNum(L.toStart) + ' not-yet-started starts are Ready',
         pick: L.toStart ? ll({ pred: 'toStart' }, 'Starts not yet started', rangeText + ' · Ready first in the status column') : null },
       { label: 'Constraint-free starts', value: C.fmtPct(L.constraintFreePct), tone: pctTone(L.constraintFreePct), sub: 'Starts with no open constraint',
@@ -1379,6 +1490,9 @@
     setText('laHeatDesc', L.byTrade.length ? plural(L.byTrade.length, 'trade') + ' starting work' + (L.byTrade.length > LA_HEAT_ROWS && !laHeatAll ? ' · the ' + LA_HEAT_ROWS + ' with the most starts shown' : '') : '');
     ensureListBtn('laHeatDesc', L.starting ? ll({ pred: 'starting' }, 'Activities planned to start') : null);
 
+    /* ---- prerequisites selected, per trade ---- */
+    renderPrereq(L, ll, function () { renderLookahead(V, S, rangeText, ctx); });
+
     /* ---- activities held by open constraints ---- */
     var held = L.rows.filter(function (r) { return r.open.length; }).sort(function (a, b) {
       return (b.overdue.length > 0) - (a.overdue.length > 0) || a.anchor.localeCompare(b.anchor) || (a.t.n || '').localeCompare(b.t.n || '');
@@ -1391,7 +1505,7 @@
       var tr = el('tr');
       tr.appendChild(nameCell(r.t.n, [r.t.id ? '#' + r.t.id : null, r.t.l].filter(Boolean).join(' · ')));
       tr.appendChild(textCell(r.t.tr || UN));
-      tr.appendChild(dateCell(r.t.ps));
+      tr.appendChild(carriedCell(r.es, r.t.ps, r.lateStart, 'start'));
       var cc = el('td'), list = el('div', 'cons-list');
       r.open.slice(0, 3).forEach(function (c) { var sp = el('span', c.tg && c.tg < V.today ? 'tone-text-bad' : null, c.t || '(untitled)'); sp.title = (c.c ? c.c + ' · ' : '') + (c.ow || '') + (c.tg ? ' · target ' + C.fmtDate(c.tg, true) : ''); list.appendChild(sp); });
       if (r.open.length > 3) list.appendChild(el('span', 'cell-note', '+ ' + (r.open.length - 3) + ' more'));

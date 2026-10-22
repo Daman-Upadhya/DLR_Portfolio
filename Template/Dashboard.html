@@ -177,6 +177,10 @@ section:first-of-type { margin-top: 0; }
 @media (min-width: 1100px) { .risk-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .risk-ic { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px; border-radius: 8px; color: var(--risk-ink); background: color-mix(in srgb, var(--risk) 14%, var(--card)); }
 .risk-ic svg { width: 16px; height: 16px; }
+.risk-ic.img { background: var(--icon-bg); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.risk-ic img { width: 20px; height: 20px; object-fit: contain; display: block; }
+.risk-ic.sm img { width: 16px; height: 16px; }
+.rt-head .risk-ic img { width: 26px; height: 26px; }
 .risk-ic.sm { width: 20px; height: 20px; border-radius: 6px; } .risk-ic.sm svg { width: 13px; height: 13px; }
 .heat-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
 table.heat { width: 100%; border-collapse: separate; border-spacing: 3px; }
@@ -223,7 +227,14 @@ svg.chart .col.r-started { fill: var(--s-prog); }
 /* look-ahead page */
 .la-title { align-items: center; }
 .la-seg { margin: 0 0 0 auto; }
+@media (min-width: 1100px) { .risk-kpis.la-kpis { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 .la-heat-card { --risk: var(--s-prog); }
+.la-pq-card { --risk: var(--s-app); }
+.la-pq-card td.hc.none-col:not(.zero) { background: color-mix(in srgb, var(--s-rej) 16%, var(--card)); color: var(--bad); }
+.la-pq-card thead th.none-col { color: var(--bad); }
+.pq-ic { display: inline-flex; width: 22px; height: 22px; border-radius: 7px; align-items: center; justify-content: center; color: var(--good); background: var(--good-bg); }
+.pq-ic svg { width: 14px; height: 14px; }
+.pq-ic.never { color: var(--faint); background: var(--inset); }
 .la-heat td.hc.wk-now { box-shadow: inset 0 0 0 1px var(--brand); }
 .cons-list { display: flex; flex-direction: column; gap: 2px; }
 .cons-list span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
@@ -727,7 +738,7 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
         <button type="button" data-weeks="8" aria-pressed="false">8 weeks</button>
       </div>
     </div>
-    <div class="grid risk-kpis" id="laKpis"></div>
+    <div class="grid risk-kpis la-kpis" id="laKpis"></div>
 
     <div class="card cons-gap">
       <div class="card-head"><h2>Status by look-ahead week</h2><span class="desc" id="laWeeksDesc"></span></div>
@@ -752,6 +763,13 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
       <div class="card-head"><h2>Starts by trade and week</h2><span class="desc" id="laHeatDesc"></span></div>
       <div class="heat-wrap la-heat" id="laHeat"></div>
       <div class="heat-foot"><div class="heat-key" id="laHeatKey"></div><button class="btn heat-more" id="laHeatMore" type="button" hidden></button></div>
+    </div>
+
+    <div class="card cons-gap la-pq-card" id="laPqCard">
+      <div class="card-head"><h2>Prerequisites by trade</h2><span class="desc" id="laPqDesc"></span></div>
+      <div class="chips" id="laPqChips" style="margin-bottom:10px"></div>
+      <div class="heat-wrap" id="laPq"></div>
+      <div class="heat-foot"><div class="heat-key" id="laPqKey"></div><button class="btn heat-more" id="laPqMore" type="button" hidden></button></div>
     </div>
 
     <div class="card cons-gap">

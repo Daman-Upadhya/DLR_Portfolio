@@ -87,14 +87,22 @@ history before its removal on 6 Oct 2026).
   filter context. The slicers apply to both pages, and the open page is kept in the URL hash
   (`#page=constraints`) with the filters.
 - **Look-ahead** (the second tab): activities whose planned start or planned end falls in the
-  range, all statuses, each counted once in the week it starts (or ends, when it starts earlier).
+  range, except complete and quality-checked ones, each counted once in the week it starts (or ends, when it starts earlier).
+  Overdue work is carried over: when an activity that is not complete has a planned start in the
+  past and no actual start, or a planned end in the past and no actual end, that date moves to the
+  first day of the range (today when the range includes today), so it lands in the first
+  look-ahead week. A "Carried over" tile counts these, and the lists show the original planned date.
   Its range defaults to the 4 weeks from next Monday; 4 / 8 week buttons switch the length
   (`Template/dashboard_data.json` → `lookahead`). Tiles: look-ahead activities, planned to start,
   ready to start (share of not-yet-started starts that are Ready), constraint-free starts, held by
   open constraints, overdue constraints. Then status by look-ahead week, the status distribution,
   the linked-constraint state of every activity (linked through the constraint's activity guid,
   whatever the Constraints page's filters), starts by trade and week, and the activities held by
-  open constraints with the constraint names and next target.
+  open constraints with the constraint names and next target. A **Prerequisites by trade** matrix
+  shows, per trade, how many look-ahead activities have each prerequisite selected (the task
+  feed's `prerequisites` list, an item selected when `enable` / `makeReady` is set) and how many
+  have none selected; every prerequisite the feed offers is a column, so unused ones show as zero.
+  The card is hidden when the feed carries no prerequisites.
 - **High-risk** (a further tab, shown only when the task feed flags high-risk activities): an
   activity is high-risk when its `customField` has `"High Risk Activity": "Yes"`; its types come
   from `"High Risk Activity Type"` (comma separated, so one activity can carry several). Field
@@ -106,6 +114,11 @@ history before its removal on 6 Oct 2026).
   past planned finish, multiple types), a trade × risk-type heat map, a card per type with its
   icon, top trades and locations, a weekly look-ahead by readiness, and the next activities to
   start. Every cell, card and bar opens its activities. The tab badge counts the late ones.
+  Type icons are the client's set in `Template/assets/risk/` (Work at Height, Hot Work,
+  Excavation, Confined Space, Lifting, Electrical, Noise, Material Handling, Chemicals, Lock Out
+  Tag Out, Vehicle Movements, Safety Guards and Protective Devices), embedded in the page by the
+  build and matched to a type by its words; a type with no image gets a drawn warning icon. To
+  replace one, drop a PNG with the same file name into that folder.
 - **Export PPC review**: a button in the control bar opens a standalone report for the
   selected range and filters, ready to send: committed / successful / unsuccessful totals, PPC for the
   range, the 6-week rolling PPC and last week's PPC; an overall chart of successful and unsuccessful per

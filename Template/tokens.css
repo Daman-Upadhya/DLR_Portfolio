@@ -27,6 +27,7 @@
   /* high-risk page: heat-map ramp end and icon ink */
   --risk: #d9541e;
   --risk-ink: #b3410f;
+  --icon-bg: #ffffff;
 
   /* categorical slots for reason categories: a validated order (adjacent pairs stay apart
      under colour-vision deficiency); assigned in fixed order, never cycled past 8 */
@@ -105,6 +106,7 @@
 
   --risk: #ef7744;
   --risk-ink: #f5a27c;
+  --icon-bg: #eef1f4;
 
   --cat-1: #3987e5;
   --cat-2: #d95926;

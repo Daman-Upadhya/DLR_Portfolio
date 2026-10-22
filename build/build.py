@@ -221,6 +221,10 @@ class Assets:
         # header logos: PNG files embedded as data URIs, so every page stays one self-contained file
         self.logos = {key: png_data_uri(os.path.join(TEMPLATE_DIR, "assets", name))
                       for key, name in (("LOGO_VISILEAN", "logo-visilean.png"), ("LOGO_DLR", "logo-digital-realty.png"))}
+        # high-risk activity type icons (Template/assets/risk/<slug>.png), as {slug: data URI} for the page
+        risk_dir = os.path.join(TEMPLATE_DIR, "assets", "risk")
+        self.risk_icons = {os.path.splitext(n)[0]: png_data_uri(os.path.join(risk_dir, n))
+                           for n in sorted(os.listdir(risk_dir)) if n.endswith(".png")} if os.path.isdir(risk_dir) else {}
         self.data = read_json(os.path.join(TEMPLATE_DIR, "dashboard_data.json"))
         self.logic_hash = M.sha256_file(os.path.join(TEMPLATE_DIR, "calculation.py"))
         self.calc = load_calculation()
@@ -300,7 +304,8 @@ def build_project(cfg: dict, assets: Assets, mode: str, today: date, now: dateti
         "staleAfterHours": data.get("staleAfterHours", 20), "locale": data.get("locale", "en-IN"),
         "tokenRejected": token_rejected,
     }
-    payload = {"meta": meta, "project": public_project(cfg), "data": strip_private(data), "metrics": metrics}
+    payload = {"meta": meta, "project": public_project(cfg), "data": strip_private(data), "metrics": metrics,
+               "riskIcons": assets.risk_icons}
 
     sections_html = read_text(overrides["sections"]) if overrides["sections"] else ""
     page = I.inline_assets(assets.dashboard, assets.tokens_css, assets.charts_js, assets.app_js, assets.aggregate_js)

@@ -469,7 +469,8 @@
   }
 
   /* ---------- look-ahead (the Look-ahead page) ----------
-     Activities whose planned start or planned end falls in the range, every status included.
+     Activities that are not complete (status.groups.complete) whose planned start or planned end falls in the range,
+     with overdue dates carried forward (see rollTo below).
      Each counts once, in the week of its planned start, or of its planned end when it starts
      before the range. Linked constraints are every constraint whose activity guid is the task's,
      whatever the Constraints page's filters: open = no completion date, overdue = open with a
@@ -481,14 +482,25 @@
     function groupOf(st) { for (var i = 0; i < LA_GROUPS.length; i++) if ((G[LA_GROUPS[i]] || []).indexOf(st) >= 0) return LA_GROUPS[i]; return 'notStarted'; }
     var consBy = {};
     (facts.constraints || []).forEach(function (r) { if (r.g) { var m = consBy[r.g] = consBy[r.g] || {}; if (!m[r.u]) m[r.u] = r; } });
+    /* carry-over: an activity that is not complete and whose planned start (no actual start) or
+       planned end (no actual end) has passed is still to do, so that date rolls forward to the
+       first day of the range (today when the range already includes today). A range wholly in the
+       past keeps the planned dates. */
+    var rollTo = !to || to >= today ? (from && from > today ? from : today) : null;
     var rows = [];
     tasksA.forEach(function (t) {
-      var s = inRange(t.ps, from, to), e = inRange(t.pe, from, to);
+      var group = groupOf(t.st);
+      if (group === 'complete') return; /* complete and quality-checked work needs no look-ahead review */
+      var live = !!rollTo;
+      var lateStart = !!(live && t.ps && t.ps < today && !t.as), lateEnd = !!(live && t.pe && t.pe < today && !t.ae);
+      var es = lateStart ? rollTo : t.ps, ee = lateEnd ? rollTo : t.pe;
+      var s = inRange(es, from, to), e = inRange(ee, from, to);
       if (!s && !e) return;
       var m = consBy[t.g] || {}, cons = Object.keys(m).map(function (u) { return m[u]; });
       var open = cons.filter(function (r) { return !r.cp; }), overdue = open.filter(function (r) { return r.tg && r.tg < today; });
-      var anchor = s ? t.ps : t.pe;
-      rows.push({ t: t, starts: s, ends: e, anchor: anchor, week: isoWeek(anchor), group: groupOf(t.st), cons: cons, open: open, overdue: overdue,
+      var anchor = s ? es : ee;
+      rows.push({ t: t, starts: s, ends: e, es: es, ee: ee, lateStart: lateStart && s, lateEnd: lateEnd && e, carried: (lateStart && s) || (lateEnd && e),
+                  anchor: anchor, week: isoWeek(anchor), group: group, cons: cons, open: open, overdue: overdue,
                   cstate: !cons.length ? 'none' : overdue.length ? 'overdue' : open.length ? 'open' : 'closed',
                   nextTarget: open.reduce(function (a, r) { return r.tg && (!a || r.tg < a) ? r.tg : a; }, null) });
     });
@@ -524,12 +536,29 @@
       if (!r.starts) return;
       var k = r.t.tr || UN, row = tm[k] = tm[k] || { trade: k, starts: 0, open: 0, cells: {} };
       row.starts++; if (r.open.length) row.open++;
-      var wk = isoWeek(r.t.ps); row.cells[wk] = (row.cells[wk] || 0) + 1;
+      var wk = isoWeek(r.es); row.cells[wk] = (row.cells[wk] || 0) + 1;
     });
     var byTrade = Object.keys(tm).map(function (k) { return tm[k]; })
       .sort(function (a, b) { return b.starts - a.starts || (a.trade === UN) - (b.trade === UN) || a.trade.localeCompare(b.trade); });
     var maxCell = 0;
     byTrade.forEach(function (r) { for (var k in r.cells) if (r.cells[k] > maxCell) maxCell = r.cells[k]; });
+
+    /* prerequisites selected on each look-ahead activity (t.pq), per trade; the columns are every
+       prerequisite in the feed (facts.prerequisites), so the ones nobody selected show as zero */
+    var pqNames = (facts.prerequisites || []).slice(), pqSeen = {}, pqTm = {}, pqTotals = {};
+    pqNames.forEach(function (x) { pqSeen[x] = 1; pqTotals[x] = 0; });
+    rows.forEach(function (r) {
+      var k = r.t.tr || UN, row = pqTm[k] = pqTm[k] || { trade: k, total: 0, none: 0, cells: {} }, pq = r.t.pq || [];
+      row.total++; if (!pq.length) row.none++;
+      pq.forEach(function (x) { if (!pqSeen[x]) { pqSeen[x] = 1; pqNames.push(x); pqTotals[x] = 0; } row.cells[x] = (row.cells[x] || 0) + 1; pqTotals[x]++; });
+    });
+    var pqTrades = Object.keys(pqTm).map(function (k) { return pqTm[k]; })
+      .sort(function (a, b) { return b.total - a.total || (a.trade === UN) - (b.trade === UN) || a.trade.localeCompare(b.trade); });
+    var pqMax = 0;
+    pqTrades.forEach(function (r) { for (var x in r.cells) if (r.cells[x] > pqMax) pqMax = r.cells[x]; if (r.none > pqMax) pqMax = r.none; });
+    var withPq = n(function (r) { return r.t.pq && r.t.pq.length; });
+    var prereq = { names: pqNames, totals: pqTotals, byTrade: pqTrades, max: pqMax, withAny: withPq, none: rows.length - withPq,
+                   anyPct: pct(withPq, rows.length), available: pqNames.length > 0 };
 
     var starting = rows.filter(function (r) { return r.starts; });
     var toStart = starting.filter(function (r) { return r.group === 'ready' || r.group === 'notStarted'; });
@@ -540,8 +569,9 @@
       constraintFreePct: pct(starting.filter(function (r) { return !r.open.length; }).length, starting.length),
       withOpen: n(function (r) { return r.open.length; }), withOverdue: n(function (r) { return r.overdue.length; }),
       openCons: uniq(openAll), overdueCons: uniq(overAll), linked: n(function (r) { return r.cons.length; }),
-      highRisk: n(function (r) { return r.t.hr; }),
-      byStatus: byStatus, byGroup: byGroup, cstates: cstates, weeks: weeks, byTrade: byTrade, maxCell: maxCell
+      highRisk: n(function (r) { return r.t.hr; }), rollTo: rollTo,
+      carried: n(function (r) { return r.carried; }), carriedStart: n(function (r) { return r.lateStart; }), carriedEnd: n(function (r) { return r.lateEnd && !r.lateStart; }),
+      byStatus: byStatus, byGroup: byGroup, cstates: cstates, weeks: weeks, byTrade: byTrade, maxCell: maxCell, prereq: prereq
     };
   }
 
@@ -681,18 +711,20 @@
         toStart: function (r) { return r.starts && (r.group === 'ready' || r.group === 'notStarted'); },
         ready: function (r) { return r.starts && r.group === 'ready'; },
         open: function (r) { return r.open.length > 0; }, overdue: function (r) { return r.overdue.length > 0; },
-        linked: function (r) { return r.cons.length > 0; }, highRisk: function (r) { return !!r.t.hr; }
+        linked: function (r) { return r.cons.length > 0; }, highRisk: function (r) { return !!r.t.hr; },
+        carried: function (r) { return r.carried; }
       }[spec.pred || 'all'];
       return ((V.lookahead && V.lookahead.rows) || []).filter(function (r) {
         return LQ(r) && (!spec.group || r.group === spec.group) && (!spec.status || (r.t.st || UN) === spec.status)
           && (!spec.cstate || r.cstate === spec.cstate) && (!spec.trade || (r.t.tr || UN) === spec.trade)
-          && (!spec.week || r.week === spec.week) && (!spec.startWeek || (r.starts && isoWeek(r.t.ps) === spec.startWeek));
+          && (!spec.pq || (spec.pq === 'none' ? !(r.t.pq && r.t.pq.length) : spec.pq === 'any' ? !!(r.t.pq && r.t.pq.length) : (r.t.pq || []).indexOf(spec.pq) >= 0))
+          && (!spec.week || r.week === spec.week) && (!spec.startWeek || (r.starts && isoWeek(r.es) === spec.startWeek));
       }).map(function (r) {
         var a = act(r.t, null);
-        a.riskTypes = r.t.hr || []; a.lookWeek = r.week; a.consTotal = r.cons.length; a.consOpen = r.open.length; a.consOverdue = r.overdue.length;
+        a.riskTypes = r.t.hr || []; a.lookWeek = r.week; a.effStart = r.es; a.effEnd = r.ee; a.lateStart = r.lateStart; a.lateEnd = r.lateEnd; a.prerequisites = r.t.pq || []; a.consTotal = r.cons.length; a.consOpen = r.open.length; a.consOverdue = r.overdue.length;
         a.nextTarget = r.nextTarget; a.consTitles = r.open.map(function (c) { return c.t; });
         return a;
-      }).sort(function (x, y) { return (x.plannedStart || x.plannedEnd || '').localeCompare(y.plannedStart || y.plannedEnd || '') || (x.trade || '').localeCompare(y.trade || '') || byName(x, y); });
+      }).sort(function (x, y) { return (x.effStart || x.effEnd || '').localeCompare(y.effStart || y.effEnd || '') || (x.trade || '').localeCompare(y.trade || '') || byName(x, y); });
     }
     return [];
   }
