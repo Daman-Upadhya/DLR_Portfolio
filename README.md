@@ -112,7 +112,7 @@ history before its removal on 6 Oct 2026).
   look-ahead from this week, and it has its own slicers (risk type, trade, location,
   organisation). It shows tiles (total, in progress, starting in 7 days, should have started,
   past planned finish, multiple types), a trade × risk-type heat map, a card per type with its
-  icon, top trades and locations, a weekly look-ahead by readiness, and the next activities to
+  icon and status, a weekly look-ahead by readiness, and the next activities to
   start. Every cell, card and bar opens its activities. The tab badge counts the late ones.
   Type icons are the client's set in `Template/assets/risk/` (Work at Height, Hot Work,
   Excavation, Confined Space, Lifting, Electrical, Noise, Material Handling, Chemicals, Lock Out

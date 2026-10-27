@@ -1600,9 +1600,9 @@
     setText('riskHeatDesc', R.total ? plural(R.trades, 'trade') + ' × ' + plural(types.length, 'risk type') + (R.byTrade.length > RISK_HEAT_ROWS && !riskHeatAll ? ' · the ' + RISK_HEAT_ROWS + ' trades with the most shown' : '') : '');
     ensureListBtn('riskHeatDesc', R.total ? rl({}, 'High-risk activities') : null);
 
-    /* ---- one card per risk type: count, flags, top trades and locations ---- */
+    /* ---- one card per risk type: count and flags ---- */
     var tg = document.getElementById('riskTypes'); tg.innerHTML = '';
-    setText('riskTypesDesc', R.byType.length ? 'Open activities per type, with the trades and locations carrying them' : '');
+    setText('riskTypesDesc', R.byType.length ? 'Open activities per type' : '');
     if (!R.byType.length) tg.appendChild(el('p', 'empty', 'No high-risk types in the selected range.'));
     R.byType.forEach(function (x) {
       var card = el('div', 'card rt-card'), head = el('div', 'rt-head');
@@ -1615,21 +1615,6 @@
       if (x.overdue) flags.appendChild(chip('Past finish', x.overdue, 's-fail', null, rl({ riskType: x.type, pred: 'overdue' }, x.type + ': past planned finish')));
       if (!flags.children.length) flags.appendChild(chip('All planned ahead', null, 's-ok'));
       card.appendChild(flags);
-      function rows(cap, list, specOf) {
-        var box = el('div', 'rt-rows'); box.appendChild(el('div', 'rt-cap', cap));
-        list.slice(0, 3).forEach(function (g) {
-          var r = el('div', 'rt-row'), bar = el('div', 'rt-bar'), fill = el('span');
-          fill.style.width = Math.max(4, Math.round(100 * g.count / x.count)) + '%'; bar.appendChild(fill);
-          var l = el('span', 'rt-l', g.label); l.title = g.label;
-          r.appendChild(l); r.appendChild(bar); r.appendChild(el('span', 'rt-c', C.fmtNum(g.count)));
-          if (specOf) makePick(r, specOf(g), false);
-          box.appendChild(r);
-        });
-        if (list.length > 3) box.appendChild(el('div', 'cell-note', '+ ' + plural(list.length - 3, cap === 'Trades' ? 'more trade' : 'more location')));
-        card.appendChild(box);
-      }
-      rows('Trades', x.trades, function (g) { return rl({ riskType: x.type, trade: g.label }, g.label + ' · ' + x.type); });
-      rows('Locations', x.locations, null);
       tg.appendChild(card);
     });
 
