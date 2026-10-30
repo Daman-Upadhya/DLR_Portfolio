@@ -1,51 +1,87 @@
-/* FRA20 only: a focused Constraints page.
-   KPI tile order from app.js: 1 raised, 2 open, 3 overdue now, 4 overdue %, 5 resolved on time,
-   6 avg. time to resolve, 7 avg. age of open, 8 avg. lag, 9 unlinked, 10 resolved before start.
-   Kept: overdue now (hero), then open, raised, resolved on time, avg. lag. */
+/* FRA20 only: focused Look-ahead, Constraints and High-risk pages.
+   Each page keeps one hero tile, four supporting tiles (number and label only) and the charts
+   that say who or what to act on. Tiles are picked by position, in the order app.js builds them:
+     #laKpis    1 look-ahead activities, 2 planned to start, 3 carried over, 4 ready to start,
+                5 constraint-free starts, 6 held by constraints, 7 constraints overdue
+     #consKpis  1 raised, 2 open, 3 overdue now, 4 overdue %, 5 resolved on time,
+                6 avg. time to resolve, 7 avg. age of open, 8 avg. lag, 9 unlinked, 10 resolved before start
+     #riskKpis  1 high-risk activities, 2 in progress, 3 starting in 7 days, 4 should have started,
+                5 past planned finish, 6 multiple risk types */
 
-/* ---------- tiles: drop duplicates and secondary measures ---------- */
-#consKpis > .kpi:nth-child(4),
+/* ---------- tiles: duplicates and secondary measures ---------- */
+#laKpis > .kpi:nth-child(5),                    /* constraint-free starts: the inverse of held by constraints */
+#laKpis > .kpi:nth-child(7),                    /* constraints overdue: on the Constraints page */
+#consKpis > .kpi:nth-child(4),                  /* overdue %: overdue now as a share */
 #consKpis > .kpi:nth-child(6),
-#consKpis > .kpi:nth-child(7),
+#consKpis > .kpi:nth-child(7),                  /* avg. age of open: the ageing chart */
 #consKpis > .kpi:nth-child(9),
-#consKpis > .kpi:nth-child(10) { display: none; }
+#consKpis > .kpi:nth-child(10),
+#riskKpis > .kpi:nth-child(6) { display: none; }
 
+/* order: hero first, then the supporting tiles */
+#laKpis > .kpi:nth-child(4)   { order: 1; }
+#laKpis > .kpi:nth-child(2)   { order: 2; }
+#laKpis > .kpi:nth-child(6)   { order: 3; }
+#laKpis > .kpi:nth-child(3)   { order: 4; }
+#laKpis > .kpi:nth-child(1)   { order: 5; }
 #consKpis > .kpi:nth-child(3) { order: 1; }
 #consKpis > .kpi:nth-child(2) { order: 2; }
 #consKpis > .kpi:nth-child(1) { order: 3; }
 #consKpis > .kpi:nth-child(5) { order: 4; }
 #consKpis > .kpi:nth-child(8) { order: 5; }
+#riskKpis > .kpi:nth-child(3) { order: 1; }
+#riskKpis > .kpi:nth-child(4) { order: 2; }
+#riskKpis > .kpi:nth-child(5) { order: 3; }
+#riskKpis > .kpi:nth-child(2) { order: 4; }
+#riskKpis > .kpi:nth-child(1) { order: 5; }
 
-/* supporting tiles: number and label only; the number's colour carries the tone */
-#consKpis > .kpi:not(:nth-child(3)) .kpi-sub,
-#consKpis > .kpi:not(:nth-child(3)) .pill { display: none; }
-#consKpis > .kpi:not(:nth-child(3)) { justify-content: center; }
-#consKpis > .kpi:not(:nth-child(3)) .kpi-value { font-size: 30px; }
+/* supporting tiles: number and label; the number's colour carries the tone */
+#laKpis > .kpi:not(:nth-child(4)) :is(.kpi-sub, .pill),
+#consKpis > .kpi:not(:nth-child(3)) :is(.kpi-sub, .pill),
+#riskKpis > .kpi:not(:nth-child(3)) :is(.kpi-sub, .pill) { display: none; }
+#laKpis > .kpi:not(:nth-child(4)),
+#consKpis > .kpi:not(:nth-child(3)),
+#riskKpis > .kpi:not(:nth-child(3)) { justify-content: center; }
+#laKpis > .kpi:not(:nth-child(4)) .kpi-value,
+#consKpis > .kpi:not(:nth-child(3)) .kpi-value,
+#riskKpis > .kpi:not(:nth-child(3)) .kpi-value { font-size: 30px; }
 
 /* hero */
-#consKpis > .kpi:nth-child(3) {
+#laKpis > .kpi:nth-child(4),
+#consKpis > .kpi:nth-child(3),
+#riskKpis > .kpi:nth-child(3) {
   grid-column: 1 / -1; padding: 22px 24px; gap: 6px; justify-content: center;
-  border-left: 4px solid var(--line);
+  border-left: 4px solid var(--brand); background: linear-gradient(90deg, var(--brand-soft), var(--card) 70%);
 }
-#consKpis > .kpi:nth-child(3):has(.tone-text-bad)  { border-left-color: var(--bad);  background: linear-gradient(90deg, var(--bad-bg), var(--card) 70%); }
-#consKpis > .kpi:nth-child(3):has(.tone-text-warn) { border-left-color: var(--warn); background: linear-gradient(90deg, var(--warn-bg), var(--card) 70%); }
-#consKpis > .kpi:nth-child(3):has(.tone-text-good) { border-left-color: var(--good); background: linear-gradient(90deg, var(--good-bg), var(--card) 70%); }
-#consKpis > .kpi:nth-child(3) .kpi-value { font-size: 64px; letter-spacing: -.035em; }
-#consKpis > .kpi:nth-child(3) .kpi-label { font-size: 13px; color: var(--ink); }
-#consKpis > .kpi:nth-child(3) .kpi-sub   { font-size: 13.5px; }
+:is(#laKpis, #consKpis, #riskKpis) > .kpi:has(.tone-text-bad)  { border-left-color: var(--bad);  background: linear-gradient(90deg, var(--bad-bg), var(--card) 70%); }
+:is(#laKpis, #consKpis, #riskKpis) > .kpi:has(.tone-text-warn) { border-left-color: var(--warn); background: linear-gradient(90deg, var(--warn-bg), var(--card) 70%); }
+:is(#laKpis, #consKpis, #riskKpis) > .kpi:has(.tone-text-good) { border-left-color: var(--good); background: linear-gradient(90deg, var(--good-bg), var(--card) 70%); }
+/* the tone wash is for the hero only */
+#laKpis > .kpi:not(:nth-child(4)),
+#consKpis > .kpi:not(:nth-child(3)),
+#riskKpis > .kpi:not(:nth-child(3)) { border-left: 1px solid var(--line-soft); background: var(--card); }
+:is(#laKpis > .kpi:nth-child(4), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-value { font-size: 64px; letter-spacing: -.035em; }
+:is(#laKpis > .kpi:nth-child(4), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-label { font-size: 13px; color: var(--ink); }
+:is(#laKpis > .kpi:nth-child(4), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-sub   { font-size: 13.5px; }
 
 /* wide: hero on the left over two rows, the four supporting tiles 2 x 2 beside it */
 @media (min-width: 1100px) {
-  #consKpis { grid-template-columns: 1.3fr 1fr 1fr; }
-  #consKpis > .kpi:nth-child(3) { grid-column: auto; grid-row: span 2; }
+  #laKpis, #consKpis, #riskKpis { grid-template-columns: 1.3fr 1fr 1fr; }
+  #laKpis > .kpi:nth-child(4),
+  #consKpis > .kpi:nth-child(3),
+  #riskKpis > .kpi:nth-child(3) { grid-column: auto; grid-row: span 2; }
 }
 
-/* ---------- graphs: drop Outcome (repeats the tiles) and By priority ---------- */
-.card:has(#consOutcomePie),
-.card:has(#consPrioPie) { display: none; }
+/* ---------- charts ---------- */
+.grid:has(#laStatus),                           /* status distribution: the weekly status chart; linked constraints: the held tile and table */
+#laPqCard,                                      /* prerequisites by trade */
+.card:has(#consOutcomePie),                     /* outcome: repeats the tiles */
+.card:has(#consPrioPie),                        /* by priority */
+.risk-sub, #riskTypes { display: none; }        /* by risk type: the heat map's columns and totals */
 /* By category is moved next to the ageing / owner / trade cards by script.js: that row becomes 2 x 2 */
 @media (min-width: 1100px) { .grid-3:has(#consAgeing) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-/* ---------- sentences: the page title line and the card descriptions ---------- */
-#consDesc,
-#pageConstraints .card-head .desc { display: none; }
+/* ---------- sentences: page and card descriptions, heat-map key notes ---------- */
+#laDesc, #consDesc, #riskDesc,
+:is(#pageLookahead, #pageConstraints, #pageRisk) .card-head .desc,
+:is(#laHeatKey, #riskHeatKey) > span:nth-child(n+4) { display: none; }
