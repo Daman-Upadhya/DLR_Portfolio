@@ -145,23 +145,31 @@ var FRA20Pages = (function () {
   return { add: add };
 })();
 
-/* FRA20 only. Energisation page: the activities extra_calc.py flags (custom field "Deliver..."
-   mentions Energisation), one per machine. The machine is named by the activity's location and
-   grouped (rows) by its task name without the word "Energisation". In each group the machines are
-   ordered by planned end, and each distinct planned-end date is the next stage, so stage 1 is
-   every group's first. Status at the data date: done (actual end or a completed status), late
+/* FRA20 only. Energisation page: the activities extra_calc.py flags (custom field "Discipline"
+   is Energisation), one End Milestone per machine. The machine is the task name ("2HVM2"); its
+   row is the machinery type read from the location ("P2_FO_L0.008 - HV Room" -> HV Room,
+   "P1_FO_Gantry - Gen06" -> Generator, "R2" with task "Chiller 04 & 10" -> Chiller). In each row
+   the machines are ordered by planned end, and each distinct planned-end date is the next stage,
+   so stage 1 is every row's first. Status at the data date: done (actual end or a completed status), late
    (planned end passed), due in the next 7 days, or planned. The page has no slicers: it always
    shows every energisation activity. */
 (function () {
   'use strict';
   var D = JSON.parse(document.getElementById('data').textContent), M = D.metrics;
-  var guids = M && M.energisation && M.energisation.guids;
-  if (!guids || !guids.length) return;
+  var rows = M && M.energisation && M.energisation.items;
+  if (!rows || !rows.length) return;
   var C = window.Charts, A = window.Agg, el = C.el, FX = M.facts, today = FX.today, soon = A.addDays(today, 7);
-  var WORD = /\benergi[sz]\w*\b/ig;
+  /* machinery types, in this row order; anything else is named by the location's last part */
+  var TYPES = [['HV Room', /\bHV Room\b/i], ['Generator', /\bGen(erator)?\s*\d*\b/i], ['Transformer', /\bTransformer\b/i],
+               ['LV Room', /\bLV Room\b/i], ['Chiller', /\bChiller\b/i]];
 
   function clean(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
-  function groupOf(t) { return clean(clean(t.n).replace(WORD, '').replace(/^[\s\-–:,.()]+|[\s\-–:,.()]+$/g, '')) || 'Other'; }
+  function groupOf(t) {
+    var tail = clean(clean(t.l).split(/\s+-\s*|-\s+/).pop());
+    for (var i = 0; i < TYPES.length; i++) if (TYPES[i][1].test(tail)) return TYPES[i][0];
+    for (i = 0; i < TYPES.length; i++) if (TYPES[i][1].test(clean(t.n))) return TYPES[i][0];
+    return clean(tail.replace(/(\s+[A-Z]|\s*\d+)$/, '')) || 'Other';
+  }
   function day(iso) { return iso ? iso.slice(0, 10) : null; }
   function daysBetween(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / 864e5); }
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -174,15 +182,13 @@ var FRA20Pages = (function () {
   }
 
   /* ---- machines, groups and stages ---- */
-  var want = {}; guids.forEach(function (g) { want[g] = 1; });
   var items = [], undated = 0;
-  FX.tasks.forEach(function (t) {
-    if (!want[t.g]) return;
+  rows.forEach(function (t) {
     var pe = day(t.pe);
     if (!pe) { undated++; return; }
     var done = !!t.ae || /complet|finish|closed/i.test(t.st || '');
     var st = done ? 'done' : pe < today ? 'late' : pe <= soon ? 'due' : 'planned';
-    items.push({ t: t, machine: clean(t.l) || clean(t.n), group: groupOf(t), pe: pe, st: st, late: st === 'late' ? daysBetween(pe, today) : 0 });
+    items.push({ t: t, machine: clean(t.n), group: groupOf(t), pe: pe, st: st, late: st === 'late' ? daysBetween(pe, today) : 0 });
   });
   if (!items.length) return;
   var groups = {}, order = [];
@@ -192,6 +198,9 @@ var FRA20Pages = (function () {
     if (g.dates[g.dates.length - 1] !== it.pe) g.dates.push(it.pe);
     it.stage = g.dates.length;
   });
+  var rank = TYPES.map(function (x) { return x[0]; });
+  function rk(name) { var i = rank.indexOf(name); return i < 0 ? rank.length : i; }
+  order.sort(function (a, b) { return rk(a.name) - rk(b.name) || a.dates[0].localeCompare(b.dates[0]); });
   var nStages = Math.max.apply(null, order.map(function (g) { return g.dates.length; }));
   var RANK = { late: 3, due: 2, planned: 1, done: 0 };
   function counts(list) {
@@ -204,7 +213,7 @@ var FRA20Pages = (function () {
   }
   function describe(it) {
     var s = { done: 'done', late: it.late + ' days behind plan', due: 'due in the next 7 days', planned: 'planned' }[it.st];
-    return it.machine + ' · ' + clean(it.t.n) + ' · planned end ' + C.fmtDate(it.pe, true) + ' · ' + s;
+    return it.machine + ' · ' + (clean(it.t.l) || 'no location') + ' · planned end ' + C.fmtDate(it.pe, true) + ' · ' + s;
   }
 
   var panel = FRA20Pages.add('energisation', 'Energisation', '<path d="M9.2 1.6 3.6 9h4.1l-1 5.4L12.4 7H8.3z"/>');

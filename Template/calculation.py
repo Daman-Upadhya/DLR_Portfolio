@@ -258,10 +258,13 @@ def _prerequisites(r: dict, catalogue: dict) -> list[str] | None:
     return [n for _, n in sorted(set(chosen))]
 
 
-def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
+def _tasks(raw: list, data: dict) -> tuple[list[dict], dict, list[dict]]:
     types = set(_get(data, "taskTypes", ["Construction", "Design"]) or [])
     by_guid: "OrderedDict[str, dict]" = OrderedDict()
     excluded: dict[str, int] = {}
+    # rows of the excluded types (milestones...) that carry custom fields, one per guid, for
+    # overrides/extra_calc.py (model["otherTasks"]); no metric counts them
+    other: "OrderedDict[str, dict]" = OrderedDict()
     catalogue: dict[str, float] = {}
     history_rows = 0
     for r in raw or []:
@@ -270,6 +273,12 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
         ttype = _text(r.get("taskType"))
         if types and ttype not in types:
             excluded[ttype or "(none)"] = excluded.get(ttype or "(none)", 0) + 1
+            g = _text(r.get("guid")) or _text(r.get("taskId"))
+            if g and g not in other and r.get("customField"):
+                other[g] = {"guid": g, "id": _text(r.get("taskId")), "name": _text(r.get("taskName")) or "(unnamed)",
+                            "type": ttype, "status": _text(r.get("status")), "trade": _text(r.get("trade")),
+                            "location": _text(r.get("location")), "plannedEnd": parse_date(r.get("plannedEndDate")),
+                            "actualEnd": parse_date(r.get("actualEndDate")), "custom": _custom_fields(r)}
             continue
         guid = _text(r.get("guid")) or _text(r.get("taskId"))
         if not guid:
@@ -330,7 +339,7 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
     for t in tasks:
         t["reasons"], t["categories"], t["events"] = sorted(t["reasons"]), sorted(t["categories"]), sorted(t["events"])
     return tasks, {"rows": len(raw or []), "historyRows": history_rows, "excludedByType": excluded,
-                   "prerequisites": sorted(catalogue, key=lambda n: (catalogue[n], n))}
+                   "prerequisites": sorted(catalogue, key=lambda n: (catalogue[n], n))}, list(other.values())
 
 
 def _commit_rows(raw) -> list[dict]:
@@ -441,13 +450,14 @@ def normalise(feeds, data: dict | None = None) -> dict:
     data = data or {}
     if isinstance(feeds, list) or feeds is None:
         feeds = {"tasks": feeds or []}
-    tasks, feed = _tasks(feeds.get("tasks") or [], data)
+    tasks, feed, other = _tasks(feeds.get("tasks") or [], data)
     by_guid = {t["guid"]: t for t in tasks}
     return {
         "tasks": tasks,
         "commitments": _commitments(feeds.get("committed"), by_guid),
         "constraints": _constraints(feeds.get("constraints"), by_guid, data),
         "feed": feed,
+        "otherTasks": other,
     }
 
 

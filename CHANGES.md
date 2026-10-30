@@ -405,17 +405,20 @@ High Risk ones counted.
 
 ### 3.10 FRA20: Energisation page, 30 Oct
 
-FRA20 has an Energisation tab after High-risk, added by its own overrides only.
-`FRA20/overrides/extra_calc.py` keeps the activities with a custom field whose name contains
-"deliver" (e.g. Deliverables) and whose value mentions "energi" (Energisation, Energization), and
-adds their guids as `metrics.energisation`. `FRA20/overrides/script.js` draws the page from
-`facts.tasks`. The machine is the activity's location, and the row (equipment type) is its task
-name without the word "Energisation". In each row, each distinct planned-end date is the next
-stage. The page shows a card for all stages and one per stage (machinery, % done, planned-end
-range, Done / Late / Planned), and a row x stage matrix whose cells show completed, late
-(+days), due in 7 days or planned at the data date. It has no slicers. For this,
-`calculation.py` keeps each task's custom fields on the model (`custom`); they are not embedded
-in any page.
+FRA20 has an Energisation tab after High-risk, added by its own overrides only. The activities are
+the ones whose custom field "Discipline" is Energisation: in FRA20 one End Milestone per machine
+(task name "2HVM2", location "P2_FO_L0.008 - HV Room"). End Milestones are outside
+`data.taskTypes`, so `calculation.py` now keeps the rows of excluded types that carry custom
+fields as `model["otherTasks"]` (one per guid; no metric counts them, nothing is embedded).
+`FRA20/overrides/extra_calc.py` picks the energisation ones from `otherTasks` and `tasks` and
+embeds a short row for each (`metrics.energisation.items`: guid, name, location, planned and
+actual end, status). `FRA20/overrides/script.js` names each machine by its task name and puts it
+in a row by the machinery type in its location (HV Room, Generator, Transformer, LV Room; the
+roof location "R2" falls back to the task name, Chiller). In each row each distinct planned-end
+date is the next stage. The page shows a card for all stages and one per stage (machinery, %
+done, planned-end range, Done / Late / Planned) and a row x stage matrix whose cells show
+completed, late (+days), due in 7 days or planned at the data date. It has no slicers. Checked on
+an export of 36,280 rows (`deiliviers.json`, cut off in its last record): 29 machines, 10 stages.
 
 ### 3.11 FRA20: Trade performance page, 30 Oct
 

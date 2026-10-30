@@ -2,15 +2,17 @@
 (overrides/script.js draws them).
 
 An activity is an energisation activity when a custom field whose name contains FIELD (the
-"Deliverables" / "Deliveries" field) has a value that mentions VALUE ("Energisation",
-"Energization", "Energise"...). Both matches ignore case. The page reads the activities'
-name, location, planned and actual end and status from facts.tasks; this adds only their guids.
+"Discipline" field) has a value that mentions VALUE ("Energisation", "Energization"...). Both
+matches ignore case. In FRA20 these are End Milestones, one per machine (taskName "2HVM2",
+location "P2_FO_L0.008 - HV Room"). That type is outside data.taskTypes, so they are not in
+facts.tasks: they come from model["otherTasks"] (and model["tasks"], should one be Construction)
+and the page gets their own short rows in metrics.energisation.items.
 
 Trade performance needs one more thing facts.tasks does not carry: which activities have a
 planned workforce (totalPlannedWorkers above 0). Their guids go in metrics.workforce.
 """
 
-FIELD = "deliver"
+FIELD = "discipline"
 VALUE = "energi"
 
 
@@ -24,6 +26,9 @@ def _is_energisation(custom) -> bool:
 
 
 def extend(metrics, model, project, today):
-    metrics["energisation"] = {"guids": [t["guid"] for t in model["tasks"] if _is_energisation(t.get("custom"))]}
+    items = [{"g": t["guid"], "n": t["name"], "l": t["location"], "pe": t["plannedEnd"], "ae": t["actualEnd"], "st": t["status"]}
+             for t in list(model["tasks"]) + list(model.get("otherTasks") or []) if _is_energisation(t.get("custom"))]
+    metrics["energisation"] = {"items": items}
+    print("FRA20 energisation: %d activities" % len(items))
     metrics["workforce"] = {"guids": [t["guid"] for t in model["tasks"] if (t.get("plannedWorkers") or 0) > 0]}
     return metrics

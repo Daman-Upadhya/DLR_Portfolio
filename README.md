@@ -206,7 +206,7 @@ one project only, put files in its `overrides/` folder (all optional):
 | File | Does |
 |---|---|
 | `data.json` | Settings: targets, tolerance colours, buckets, weeks, labels, location tree |
-| `extra_calc.py` | `extend(metrics, model, project, today)` adds or changes computed metrics; each `model["tasks"]` item has its custom fields in `custom` and its planned workforce in `plannedWorkers` |
+| `extra_calc.py` | `extend(metrics, model, project, today)` adds or changes computed metrics; each `model["tasks"]` item has its custom fields in `custom` and its planned workforce in `plannedWorkers`; `model["otherTasks"]` holds the rows of excluded task types that have custom fields |
 | `sections.html` | HTML added below the pages (`{{PROJECT_SECTIONS}}`) |
 | `style.css` | CSS inlined after every shared rule, so it wins: colours, spacing, or `display: none` on a card |
 | `script.js` | JavaScript run after `app.js`: new charts and widgets, or a replacement for a hidden card |
