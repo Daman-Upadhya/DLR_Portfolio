@@ -74,14 +74,16 @@
 
 /* ---------- charts ---------- */
 .grid:has(#laStatus),                           /* status distribution: the weekly status chart; linked constraints: the held tile and table */
-#laPqCard,                                      /* prerequisites by trade */
 .card:has(#consOutcomePie),                     /* outcome: repeats the tiles */
 .card:has(#consPrioPie),                        /* by priority */
 .risk-sub, #riskTypes { display: none; }        /* by risk type: the heat map's columns and totals */
+/* prerequisites matrix: script.js turns it into "not selected" counts, shaded red */
+#laPqKey .heat-ramp { background: linear-gradient(90deg, color-mix(in srgb, var(--bad) 12%, var(--card)), var(--bad)); }
+#laPq .pq-ic { color: var(--bad); background: var(--bad-bg); }
 /* By category is moved next to the ageing / owner / trade cards by script.js: that row becomes 2 x 2 */
 @media (min-width: 1100px) { .grid-3:has(#consAgeing) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* ---------- sentences: page and card descriptions, heat-map key notes ---------- */
 #laDesc, #consDesc, #riskDesc,
 :is(#pageLookahead, #pageConstraints, #pageRisk) .card-head .desc,
-:is(#laHeatKey, #riskHeatKey) > span:nth-child(n+4) { display: none; }
+:is(#laHeatKey, #riskHeatKey, #laPqKey) > span:nth-child(n+4) { display: none; }

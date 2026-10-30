@@ -212,6 +212,8 @@
     node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(node); } });
   }
   function lister(spec, title, sub) { return function (node) { openList(spec, title, sub, node); }; }
+  /* for project overrides (P<key>/overrides/script.js): open the side panel list for an Agg.records spec */
+  window.DLR = { openList: openList };
   function ensureListBtn(descId, fn) {
     var d = document.getElementById(descId);
     if (!d) return;

@@ -718,6 +718,7 @@
         return LQ(r) && (!spec.group || r.group === spec.group) && (!spec.status || (r.t.st || UN) === spec.status)
           && (!spec.cstate || r.cstate === spec.cstate) && (!spec.trade || (r.t.tr || UN) === spec.trade)
           && (!spec.pq || (spec.pq === 'none' ? !(r.t.pq && r.t.pq.length) : spec.pq === 'any' ? !!(r.t.pq && r.t.pq.length) : (r.t.pq || []).indexOf(spec.pq) >= 0))
+          && (!spec.pqMissing || (r.t.pq || []).indexOf(spec.pqMissing) < 0)
           && (!spec.week || r.week === spec.week) && (!spec.startWeek || (r.starts && isoWeek(r.es) === spec.startWeek));
       }).map(function (r) {
         var a = act(r.t, null);
