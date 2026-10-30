@@ -1,0 +1,42 @@
+/* FRA20 only: Constraints KPI tiles as a hierarchy instead of ten equal tiles.
+   Tile order from app.js: 1 raised, 2 open, 3 overdue now, 4 overdue %, 5 resolved on time,
+   6 avg. time to resolve, 7 avg. age of open, 8 avg. lag, 9 unlinked, 10 resolved before start.
+   Hero: overdue now. Then open, overdue %, resolved on time, raised. Then a compact strip. */
+
+#consKpis > .kpi:nth-child(3)  { order: 1; }
+#consKpis > .kpi:nth-child(2)  { order: 2; }
+#consKpis > .kpi:nth-child(4)  { order: 3; }
+#consKpis > .kpi:nth-child(5)  { order: 4; }
+#consKpis > .kpi:nth-child(1)  { order: 5; }
+#consKpis > .kpi:nth-child(n+6) { order: 6; }
+
+/* hero */
+#consKpis > .kpi:nth-child(3) {
+  grid-column: 1 / -1; padding: 22px 24px; gap: 6px; justify-content: center;
+  border-left: 4px solid var(--line);
+}
+#consKpis > .kpi:nth-child(3):has(.tone-text-bad)  { border-left-color: var(--bad);  background: linear-gradient(90deg, var(--bad-bg), var(--card) 70%); }
+#consKpis > .kpi:nth-child(3):has(.tone-text-warn) { border-left-color: var(--warn); background: linear-gradient(90deg, var(--warn-bg), var(--card) 70%); }
+#consKpis > .kpi:nth-child(3):has(.tone-text-good) { border-left-color: var(--good); background: linear-gradient(90deg, var(--good-bg), var(--card) 70%); }
+#consKpis > .kpi:nth-child(3) .kpi-value { font-size: 64px; letter-spacing: -.035em; }
+#consKpis > .kpi:nth-child(3) .kpi-label { font-size: 13px; color: var(--ink); }
+#consKpis > .kpi:nth-child(3) .kpi-sub   { font-size: 13.5px; }
+
+/* supporting: tiles 1, 2, 4, 5 */
+#consKpis > .kpi:nth-child(-n+5):not(:nth-child(3)) .kpi-value { font-size: 30px; }
+
+/* compact strip: tiles 6-10 */
+#consKpis > .kpi:nth-child(n+6) { padding: 10px 14px; gap: 2px; box-shadow: none; background: transparent; }
+#consKpis > .kpi:nth-child(n+6) .kpi-value { font-size: 20px; }
+#consKpis > .kpi:nth-child(n+6) .kpi-label { font-size: 10.5px; margin-top: 2px; }
+#consKpis > .kpi:nth-child(n+6) .kpi-sub   { font-size: 11.5px; }
+#consKpis > .kpi:nth-child(n+6) .pill      { transform: scale(.9); transform-origin: left center; }
+
+/* wide screens: hero on the left over two rows, the four supporting tiles 2 x 2 beside it,
+   the five secondary measures in one row below (60 columns: 20 + 20 + 20, then 5 x 12) */
+@media (min-width: 1100px) {
+  #consKpis { grid-template-columns: repeat(60, minmax(0, 1fr)); }
+  #consKpis > .kpi:nth-child(3) { grid-column: span 20; grid-row: span 2; }
+  #consKpis > .kpi:nth-child(-n+5):not(:nth-child(3)) { grid-column: span 20; }
+  #consKpis > .kpi:nth-child(n+6) { grid-column: span 12; }
+}

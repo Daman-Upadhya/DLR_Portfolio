@@ -5,6 +5,7 @@ A template is plain HTML with {{PLACEHOLDER}} slots. Injection happens in a fixe
 nothing coming from the API can ever be mistaken for a template slot:
 
   1. inline_assets  -> {{TOKENS_CSS}} {{CHARTS_JS}} {{AGGREGATE_JS}} {{APP_JS}}  (Template/ files)
+                       {{PROJECT_CSS}} {{PROJECT_JS}}  (P<key>/overrides/style.css, script.js; empty when absent)
   2. fill           -> {{TITLE}} {{EYEBROW}} ... {{PROJECT_SECTIONS}} (strings from config)
   3. assert_filled  -> no {{...}} slot may remain except {{DATA}}
   4. embed          -> {{DATA}} becomes the JSON payload, last of all
@@ -26,8 +27,10 @@ class InjectError(Exception):
     """A template or payload problem that must stop the build."""
 
 
-def inline_assets(page: str, tokens_css: str, charts_js: str, app_js: str, aggregate_js: str = "") -> str:
-    for name, body in (("TOKENS_CSS", tokens_css), ("CHARTS_JS", charts_js), ("AGGREGATE_JS", aggregate_js), ("APP_JS", app_js)):
+def inline_assets(page: str, tokens_css: str, charts_js: str, app_js: str, aggregate_js: str = "",
+                  project_css: str = "", project_js: str = "") -> str:
+    for name, body in (("TOKENS_CSS", tokens_css), ("CHARTS_JS", charts_js), ("AGGREGATE_JS", aggregate_js), ("APP_JS", app_js),
+                       ("PROJECT_CSS", project_css), ("PROJECT_JS", project_js)):
         if "</script" in body.lower() or "</style" in body.lower():
             raise InjectError("%s contains a closing tag that would end its inline element" % name)
         page = page.replace("{{%s}}" % name, body)

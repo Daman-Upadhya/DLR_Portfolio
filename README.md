@@ -62,7 +62,7 @@ P<key>/project.json + manifest.json
                             live fetch (3 attempts) -> .cache/<key>.json ; outage -> cache ; no cache -> "unavailable"
    -> Template/calculation.py   normalise(feeds, data) -> compute(model, project, data, today)
    -> P<key>/overrides/extra_calc.py  (optional) extend(metrics, ...)
-   -> build/inject.py       Template/Dashboard.html + tokens.css + scripts -> {{slots}} -> JSON data last
+   -> build/inject.py       Template/Dashboard.html + tokens.css + scripts (+ overrides/style.css, script.js) -> {{slots}} -> JSON data last
    -> dist/<key>/index.html + dist/<key>/build.json
 all build.json -> Template/Landing.html -> dist/index.html
 ```
@@ -196,6 +196,32 @@ Everything configurable (task types, reason lists and categories, constraint cat
 clean-up, score bands and weights, tolerance limits, PPC target, trend length, status order,
 grouping, delay buckets) lives in `Template/dashboard_data.json`. A project overrides any of
 it in `project.json` → `display`, or in `overrides/data.json`.
+
+## Per-project page changes
+
+Every project page comes from the same `Template/`, so editing it changes every project. To change
+one project only, put files in its `overrides/` folder (all optional):
+
+| File | Does |
+|---|---|
+| `data.json` | Settings: targets, tolerance colours, buckets, weeks, labels, location tree |
+| `extra_calc.py` | `extend(metrics, model, project, today)` adds or changes computed metrics |
+| `sections.html` | HTML added below the pages (`{{PROJECT_SECTIONS}}`) |
+| `style.css` | CSS inlined after every shared rule, so it wins: colours, spacing, or `display: none` on a card |
+| `script.js` | JavaScript run after `app.js`: new charts and widgets, or a replacement for a hidden card |
+
+`script.js` can use `window.Charts`, `window.Agg` and the page data in `#data`. The page fires
+`dlr:render` on `document` after every render (first load, filter, tab change), with
+`detail = { V, S, data, page }`: the re-aggregated view, the filter state, the merged settings and
+the open page. Redraw on it:
+
+```js
+document.addEventListener('dlr:render', function (e) { /* draw from e.detail.V */ });
+```
+
+Both files are inlined into the page, so they must not contain `</script>` or `</style>` (the
+build stops) and pass the same credential scan as the rest of the page. A change to them reaches
+the page on the project's next refresh. An error in `script.js` affects that project's page only.
 
 ## Reporting date
 

@@ -29,6 +29,8 @@ OVERRIDE_FILES = {
     "logic": "overrides/extra_calc.py",
     "data": "overrides/data.json",
     "sections": "overrides/sections.html",
+    "style": "overrides/style.css",
+    "script": "overrides/script.js",
 }
 
 

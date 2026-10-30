@@ -308,7 +308,10 @@ def build_project(cfg: dict, assets: Assets, mode: str, today: date, now: dateti
                "riskIcons": assets.risk_icons}
 
     sections_html = read_text(overrides["sections"]) if overrides["sections"] else ""
-    page = I.inline_assets(assets.dashboard, assets.tokens_css, assets.charts_js, assets.app_js, assets.aggregate_js)
+    project_css = read_text(overrides["style"]) if overrides["style"] else ""
+    project_js = read_text(overrides["script"]) if overrides["script"] else ""
+    page = I.inline_assets(assets.dashboard, assets.tokens_css, assets.charts_js, assets.app_js, assets.aggregate_js,
+                           project_css, project_js)
     page = I.fill(page, {
         "TITLE": cfg.get("title") or key,
         "EYEBROW": data.get("eyebrow", "DLR"),

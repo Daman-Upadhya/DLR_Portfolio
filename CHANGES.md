@@ -381,6 +381,16 @@ With them gone:
   gone, as it would have published an empty page over the live one.
 - `--source sample` still works locally for exports saved under `sample/<CODE>.…`.
 
+### 3.8 Per-project styling and scripts, 30 Oct
+
+A project can now change its own page without touching `Template/`: `overrides/style.css` is
+inlined after the shared CSS (`{{PROJECT_CSS}}`) and `overrides/script.js` runs after `app.js`
+(`{{PROJECT_JS}}`). Both are optional, empty when absent, hashed in the manifest like the other
+overrides, and pass the same closing-tag and credential checks. `app.js` fires `dlr:render` on
+`document` after every render with `{ V, S, data, page }` so a project's widgets follow the
+slicers. Shared charts are not replaceable in place: a project hides a card in its CSS and draws
+its own in its script. See the README, "Per-project page changes".
+
 ## 4. Export PPC review
 
 The button builds a standalone report for the current range and filters, and opens it in a

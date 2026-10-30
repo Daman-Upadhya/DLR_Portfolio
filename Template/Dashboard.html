@@ -577,6 +577,8 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
   .hero-panel { background: var(--card); color: var(--ink); box-shadow: none; border: 1px solid var(--line); } .hero-panel::before { display: none; } .hp-eyebrow, .hp-desc, .hp-stats dt, .f-summary { color: var(--muted); }
   .appbar { position: static; backdrop-filter: none; } .btn, .filters { display: none; } .card, .kpi { box-shadow: none; break-inside: avoid; }
 }
+/* project overrides (P<key>/overrides/style.css), after every shared rule so they win */
+{{PROJECT_CSS}}
 </style>
 </head>
 <body data-page="project">
@@ -907,5 +909,6 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 <script>{{CHARTS_JS}}</script>
 <script>{{AGGREGATE_JS}}</script>
 <script>{{APP_JS}}</script>
+<script>{{PROJECT_JS}}</script>
 </body>
 </html>
