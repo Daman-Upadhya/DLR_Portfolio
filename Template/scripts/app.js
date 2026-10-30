@@ -1291,8 +1291,8 @@
       var V = A.run(FX, S, data), VC = S.page === 'constraints' ? V : A.run(FX, FS.constraints, data);
       var VR = !hasRisk ? null : S.page === 'risk' ? V : A.run(FX, FS.risk, data);
       renderView(V, S, { laSpan: laSpan, opts: opts, catCls: catCls, catFold: catFold, noneLabel: noneLabel, data: data, M: M, consCN: VC.constraints, risk: VR ? VR.risk : null });
-      /* project overrides (P<key>/overrides/script.js) redraw their own widgets on this; dispatched
-         after the current script so the first render also reaches a script loaded after this file */
+      /* project overrides (P<key>/overrides/script.js) redraw their own widgets on this. The first one
+         can fire before that script has run, so it also draws once on load */
       var detail = { V: V, S: S, data: data, page: S.page };
       setTimeout(function () { document.dispatchEvent(new CustomEvent('dlr:render', { detail: detail })); }, 0);
     }

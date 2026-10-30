@@ -212,6 +212,16 @@ def _custom(r: dict, name: str):
     return None
 
 
+def _custom_fields(r: dict) -> dict:
+    """All of a task's custom fields as {name: value} (customField is a dict or a [{"name", "value"}] list)."""
+    cf = r.get("customField")
+    if isinstance(cf, dict):
+        return dict(cf)
+    if isinstance(cf, list):
+        return {f.get("name"): f.get("value") for f in cf if isinstance(f, dict) and f.get("name")}
+    return {}
+
+
 def _high_risk(r: dict, data: dict) -> list[str] | None:
     """High-risk types of a task row (data.highRisk), or None when the row is not flagged.
     "Work at Height,Lifting" -> ["Lifting", "Work at Height"]; flagged without a type -> the unspecified label."""
@@ -297,6 +307,8 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
                 "events": set(),
                 "highRisk": None,
                 "prerequisites": None,
+                "custom": None,   # {field name: value}, for overrides/extra_calc.py; not embedded in the page
+                "plannedWorkers": None,   # totalPlannedWorkers, for overrides/extra_calc.py; not embedded
             }
             # Planned_PPC: finished in the same ISO week it was planned to finish
             t["plannedPPC"] = bool(t["actualWeek"] and t["actualWeek"] == t["plannedWeek"])
@@ -310,6 +322,10 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict]:
             t["prerequisites"] = _prerequisites(r, catalogue)
         if t["highRisk"] is None and r.get("customField"):
             t["highRisk"] = _high_risk(r, data)
+        if t["custom"] is None and r.get("customField"):
+            t["custom"] = _custom_fields(r)
+        if t["plannedWorkers"] is None:
+            t["plannedWorkers"] = _num(r.get("totalPlannedWorkers"))
     tasks = list(by_guid.values())
     for t in tasks:
         t["reasons"], t["categories"], t["events"] = sorted(t["reasons"]), sorted(t["categories"]), sorted(t["events"])

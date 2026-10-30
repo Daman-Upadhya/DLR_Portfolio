@@ -403,6 +403,37 @@ feed lists on each activity only the prerequisites selected on it, so `_prerequi
 (`prerequite.json`): 550 now have prerequisites selected and 232 none, where before only the 88
 High Risk ones counted.
 
+### 3.10 FRA20: Energisation page, 30 Oct
+
+FRA20 has an Energisation tab after High-risk, added by its own overrides only.
+`FRA20/overrides/extra_calc.py` keeps the activities with a custom field whose name contains
+"deliver" (e.g. Deliverables) and whose value mentions "energi" (Energisation, Energization), and
+adds their guids as `metrics.energisation`. `FRA20/overrides/script.js` draws the page from
+`facts.tasks`. The machine is the activity's location, and the row (equipment type) is its task
+name without the word "Energisation". In each row, each distinct planned-end date is the next
+stage. The page shows a card for all stages and one per stage (machinery, % done, planned-end
+range, Done / Late / Planned), and a row x stage matrix whose cells show completed, late
+(+days), due in 7 days or planned at the data date. It has no slicers. For this,
+`calculation.py` keeps each task's custom fields on the model (`custom`); they are not embedded
+in any page.
+
+### 3.11 FRA20: Trade performance page, 30 Oct
+
+FRA20 has a Trade performance tab that gives every trade a score from 1 to 5: the average of four
+KPIs, each scored 1-5. A KPI with no tasks in its week is NA and is left out of the average.
+- Outstanding without constraints: delayed activities (Delay) with no open linked constraint, as a
+  % of the trade's activities. 0% = 5, up to 10% = 4, up to 25% = 3, up to 50% = 2, above 50% = 1.
+- Missed last week: activities planned to finish last week (Mon-Sun) that did not finish that week
+  (Planned PPC unsuccessful), as a % of them. Same scale.
+- Next week with workforce and Next week with prerequisites: activities planned to start next
+  week with a planned workforce (`totalPlannedWorkers` > 0) or with a prerequisite selected, as a
+  % of them. 90% and up = 5, 75% = 4, 50% = 3, 25% = 2, below 25% = 1.
+Score colours: 4.0-5.0 Strong (green), 3.0-3.9 Fair (yellow), 2.0-2.9 Weak (orange), below 2.0
+Critical (red). The trades are listed weakest first. `calculation.py` keeps `plannedWorkers` on
+the model, and `FRA20/overrides/extra_calc.py` lists the activities with a workforce in
+`metrics.workforce`. FRA20's extra tabs (Energisation, Trade performance) share one tab-switching
+helper in its `script.js`.
+
 ## 4. Export PPC review
 
 The button builds a standalone report for the current range and filters, and opens it in a

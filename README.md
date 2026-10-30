@@ -206,15 +206,16 @@ one project only, put files in its `overrides/` folder (all optional):
 | File | Does |
 |---|---|
 | `data.json` | Settings: targets, tolerance colours, buckets, weeks, labels, location tree |
-| `extra_calc.py` | `extend(metrics, model, project, today)` adds or changes computed metrics |
+| `extra_calc.py` | `extend(metrics, model, project, today)` adds or changes computed metrics; each `model["tasks"]` item has its custom fields in `custom` and its planned workforce in `plannedWorkers` |
 | `sections.html` | HTML added below the pages (`{{PROJECT_SECTIONS}}`) |
 | `style.css` | CSS inlined after every shared rule, so it wins: colours, spacing, or `display: none` on a card |
 | `script.js` | JavaScript run after `app.js`: new charts and widgets, or a replacement for a hidden card |
 
 `script.js` can use `window.Charts`, `window.Agg` and the page data in `#data`. The page fires
-`dlr:render` on `document` after every render (first load, filter, tab change), with
+`dlr:render` on `document` after every render (filter, tab change), with
 `detail = { V, S, data, page }`: the re-aggregated view, the filter state, the merged settings and
-the open page. Redraw on it:
+the open page. The first-load event can fire before `script.js` has run, so draw once on load as
+well. Redraw on it:
 
 ```js
 document.addEventListener('dlr:render', function (e) { /* draw from e.detail.V */ });
