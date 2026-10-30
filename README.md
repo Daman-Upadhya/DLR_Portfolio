@@ -211,7 +211,11 @@ one project only, put files in its `overrides/` folder (all optional):
 | `style.css` | CSS inlined after every shared rule, so it wins: colours, spacing, or `display: none` on a card |
 | `script.js` | JavaScript run after `app.js`: new charts and widgets, or a replacement for a hidden card |
 
-`script.js` can use `window.Charts`, `window.Agg` and the page data in `#data`. The page fires
+`script.js` can use `window.Charts`, `window.Agg` and the page data in `#data`. It can open the
+side panel list with `window.DLR.openList(spec, title, sub, opener)` (an `Agg.records` spec) or
+`window.DLR.openRows(rows, title, sub, opener, noteHead)` (rows it built itself: `id`, `name`,
+`trade`, `organisation`, `location`, `status`, `plannedStart`, `plannedEnd`, `actualEnd`, and an
+extra `note` column headed `noteHead`, coloured by `tone` good / warn / bad). The page fires
 `dlr:render` on `document` after every render (filter, tab change), with
 `detail = { V, S, data, page }`: the re-aggregated view, the filter state, the merged settings and
 the open page. The first-load event can fire before `script.js` has run, so draw once on load as

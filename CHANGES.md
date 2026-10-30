@@ -437,6 +437,23 @@ the model, and `FRA20/overrides/extra_calc.py` lists the activities with a workf
 `metrics.workforce`. FRA20's extra tabs (Energisation, Trade performance) share one tab-switching
 helper in its `script.js`.
 
+### 3.12 FRA20: Energisation and Trade performance redesigned, with drill-through, 30 Oct
+
+Both pages open the activities behind any number in the side panel (search, CSV), through a new
+`window.DLR.openRows` in `app.js` for lists a project script builds itself (additive; the shared
+pages are unchanged).
+- Energisation: a hero with % energised, a status bar and Completed / Late / Due / Planned counts,
+  and the next four machines to energise. Below it, a scrolling strip of stage cards; hovering one
+  highlights its column. The matrix has a status filter and a machinery search that dim
+  the cells that do not match, and a List button for what is shown. A cell, a stage, a row name, a
+  count or a next-up machine opens those machines, most urgent first, with their row, stage and
+  days to go or behind.
+- Trade performance: a hero with the average trade score, band tiles that filter the table, and
+  four project-wide KPI cards (all trades, the weakest trade) that open every activity behind the
+  KPI. The table can be searched and sorted by any column. A KPI cell opens that trade's
+  activities for the KPI, the failing ones first with why. A trade name opens every activity
+  pulling its score down, once each, with each KPI it fails. "How the score works" folds away.
+
 ## 4. Export PPC review
 
 The button builds a standalone report for the current range and filters, and opens it in a

@@ -26,7 +26,8 @@ def _is_energisation(custom) -> bool:
 
 
 def extend(metrics, model, project, today):
-    items = [{"g": t["guid"], "n": t["name"], "l": t["location"], "pe": t["plannedEnd"], "ae": t["actualEnd"], "st": t["status"]}
+    items = [{"g": t["guid"], "id": t["id"], "n": t["name"], "tr": t["trade"], "l": t["location"], "ps": t.get("plannedStart"),
+              "pe": t["plannedEnd"], "ae": t["actualEnd"], "st": t["status"]}
              for t in list(model["tasks"]) + list(model.get("otherTasks") or []) if _is_energisation(t.get("custom"))]
     metrics["energisation"] = {"items": items}
     print("FRA20 energisation: %d activities" % len(items))

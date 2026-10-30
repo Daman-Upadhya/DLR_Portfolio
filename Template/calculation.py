@@ -277,7 +277,8 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict, list[dict]]:
             if g and g not in other and r.get("customField"):
                 other[g] = {"guid": g, "id": _text(r.get("taskId")), "name": _text(r.get("taskName")) or "(unnamed)",
                             "type": ttype, "status": _text(r.get("status")), "trade": _text(r.get("trade")),
-                            "location": _text(r.get("location")), "plannedEnd": parse_date(r.get("plannedEndDate")),
+                            "location": _text(r.get("location")), "plannedStart": parse_date(r.get("plannedStartDate")),
+                            "plannedEnd": parse_date(r.get("plannedEndDate")),
                             "actualEnd": parse_date(r.get("actualEndDate")), "custom": _custom_fields(r)}
             continue
         guid = _text(r.get("guid")) or _text(r.get("taskId"))

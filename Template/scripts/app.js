@@ -212,8 +212,8 @@
     node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(node); } });
   }
   function lister(spec, title, sub) { return function (node) { openList(spec, title, sub, node); }; }
-  /* for project overrides (P<key>/overrides/script.js): open the side panel list for an Agg.records spec */
-  window.DLR = { openList: openList };
+  /* for project overrides (P<key>/overrides/script.js): open the side panel list for an Agg.records spec, or for rows the script built */
+  window.DLR = { openList: openList, openRows: openRows };
   function ensureListBtn(descId, fn) {
     var d = document.getElementById(descId);
     if (!d) return;
@@ -445,7 +445,32 @@
     var isRisk = spec.type === 'risk', isLa = spec.type === 'lookahead';
     DR = { rows: rows, kind: kind, title: title, opener: opener || document.activeElement,
            cols: COLS[isLa ? 'lookahead' : isRisk ? 'risk' : spec.type === 'constraints' ? 'constraints' : (spec.type === 'tasks' ? 'tasks' : 'commits')], csv: CSV[isLa ? 'lookahead' : isRisk ? 'risk' : kind] };
-    setText('drawerEyebrow', kind === 'constraint' ? 'Constraints' : 'Activities');
+    showDrawer(title, sub);
+  }
+  /* for project overrides: a list of activities the project's script built itself, each
+     { id, name, trade, organisation, location, status, plannedStart, plannedEnd, actualEnd, note, tone }.
+     note is an extra column headed noteHead (tone good / warn / bad colours it). */
+  function openRows(rows, title, sub, opener, noteHead) {
+    C.hideTip();
+    var cols = [
+      { h: 'Activity', cell: function (r) { return nameCell(r.name, actSub(r)); } },
+      { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
+      { h: 'Planned start', num: true, cell: function (r) { return dateCell(r.plannedStart); } },
+      { h: 'Planned end', num: true, cell: function (r) { return dateCell(r.plannedEnd); } },
+      { h: 'Actual end', num: true, cell: function (r) { return dateCell(r.actualEnd); } },
+      { h: 'Status', cell: function (r) { return statusCell(r.status); } }
+    ];
+    var csv = [['Activity ID', 'id'], ['Activity', 'name'], ['Trade', 'trade'], ['Organisation', 'organisation'], ['Location', 'location'],
+               ['Status', 'status'], ['Planned start', 'plannedStart'], ['Planned end', 'plannedEnd'], ['Actual end', 'actualEnd']];
+    if (noteHead) {
+      cols.push({ h: noteHead, cell: function (r) { return textCell(r.note, r.tone ? 'tone-text-' + r.tone : null); } });
+      csv.push([noteHead, 'note']);
+    }
+    DR = { rows: rows, kind: 'activity', title: title, opener: opener || document.activeElement, cols: cols, csv: csv };
+    showDrawer(title, sub);
+  }
+  function showDrawer(title, sub) {
+    setText('drawerEyebrow', DR.kind === 'constraint' ? 'Constraints' : 'Activities');
     setText('drawerTitle', title);
     setText('drawerSub', sub || '');
     document.getElementById('drawerSearch').value = '';
