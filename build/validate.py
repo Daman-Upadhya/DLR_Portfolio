@@ -356,12 +356,16 @@ def selftest() -> int:
                     {"prerequisiteName": "Design", "sortIndex": 6, "enable": False, "makeReady": False},
                     {"prerequisiteName": "High Risk Activity", "sortIndex": 8, "enable": True, "makeReady": True},
                     {"prerequisiteName": "Space", "sortIndex": 1, "enable": True, "makeReady": False}]},
-               {"guid": "P2", "taskType": "Construction", "prerequisites": []}]
+               {"guid": "P2", "taskType": "Construction", "prerequisites": []},
+               {"guid": "P3", "taskType": "Construction", "prerequisites": [
+                    {"prerequisiteName": "Material", "sortIndex": 2, "enable": False, "makeReady": False},
+                    {"prerequisiteName": None, "sortIndex": 3}]}]
     pm = calc.normalise({"tasks": pq_rows}, data)
     pq = {t["guid"]: t["prerequisites"] for t in pm["tasks"]}
-    check("prerequisites: enabled ones, in sortIndex order", pq["P1"] == ["Space", "High Risk Activity"], str(pq["P1"]))
+    check("prerequisites: every listed one, in sortIndex order, whatever enable says", pq["P1"] == ["Space", "Design", "High Risk Activity"], str(pq["P1"]))
     check("prerequisites: empty list -> none selected", pq["P2"] == [])
-    check("prerequisites: catalogue keeps unselected names", pm["feed"]["prerequisites"] == ["Space", "Design", "High Risk Activity"], str(pm["feed"]["prerequisites"]))
+    check("prerequisites: null name -> not selected", pq["P3"] == ["Material"], str(pq["P3"]))
+    check("prerequisites: catalogue lists every name", pm["feed"]["prerequisites"] == ["Space", "Material", "Design", "High Risk Activity"], str(pm["feed"]["prerequisites"]))
 
     e = calc.compute(calc.normalise({"tasks": []}, data), {"key": "x"}, data, today)
     check("empty feed handled", e["totals"]["tasks"] == 0 and e["score"]["value"] is None and not calc.invariants(e))

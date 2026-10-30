@@ -226,9 +226,12 @@ def _high_risk(r: dict, data: dict) -> list[str] | None:
 
 
 def _prerequisites(r: dict, catalogue: dict) -> list[str] | None:
-    """Selected prerequisites of a task row: the "prerequisites" list, an item selected when its
-    enable (or makeReady) flag is set; in sortIndex order. Every name seen goes into catalogue
-    (name -> sortIndex), so the page can show the ones nobody selected. None when the row has no list."""
+    """Selected prerequisites of a task row: every named item in its "prerequisites" list, in
+    sortIndex order. VisiLean lists only the prerequisites selected on the activity (an empty list,
+    or an item without prerequisiteName, is nothing selected); its enable / makeReady flags are not
+    the selection (they stay false on selected standard prerequisites). Every name seen goes into
+    catalogue (name -> sortIndex), so the page can show the ones nobody selected. None when the row
+    has no list."""
     items = r.get("prerequisites")
     if not isinstance(items, list):
         return None
@@ -241,8 +244,7 @@ def _prerequisites(r: dict, catalogue: dict) -> list[str] | None:
             continue
         idx = p.get("sortIndex") if isinstance(p.get("sortIndex"), (int, float)) else 999
         catalogue[name] = min(catalogue.get(name, idx), idx)
-        if p.get("enable") or p.get("makeReady"):
-            chosen.append((idx, name))
+        chosen.append((idx, name))
     return [n for _, n in sorted(set(chosen))]
 
 

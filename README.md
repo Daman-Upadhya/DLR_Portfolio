@@ -99,8 +99,9 @@ history before its removal on 6 Oct 2026).
   the linked-constraint state of every activity (linked through the constraint's activity guid,
   whatever the Constraints page's filters), starts by trade and week, and the activities held by
   open constraints with the constraint names and next target. A **Prerequisites by trade** matrix
-  shows, per trade, how many look-ahead activities have each prerequisite selected (the task
-  feed's `prerequisites` list, an item selected when `enable` / `makeReady` is set) and how many
+  shows, per trade, how many look-ahead activities have each prerequisite selected (every named
+  item in the task feed's `prerequisites` list; an empty list or a null `prerequisiteName` is
+  nothing selected, and the `enable` / `makeReady` flags are ignored) and how many
   have none selected; every prerequisite the feed offers is a column, so unused ones show as zero.
   The card is hidden when the feed carries no prerequisites.
 - **High-risk** (a further tab, shown only when the task feed flags high-risk activities): an

@@ -391,6 +391,18 @@ overrides, and pass the same closing-tag and credential checks. `app.js` fires `
 slicers. Shared charts are not replaceable in place: a project hides a card in its CSS and draws
 its own in its script. See the README, "Per-project page changes".
 
+### 3.9 Prerequisites: listed means selected, 30 Oct
+
+The Prerequisites by trade matrix showed only "High Risk Activity" in FRA20 and PAR14 and nothing
+in MRS05. The calculation counted a prerequisite as selected only when its `enable` or
+`makeReady` flag was set, and VisiLean leaves both false on the standard prerequisites (Space,
+Material, Equipment, Manpower, External Conditions, Design, RAMS, and MRS05's French ones). The
+feed lists on each activity only the prerequisites selected on it, so `_prerequisites()` in
+`calculation.py` now counts every named item; an empty list, or an item with no
+`prerequisiteName`, is nothing selected. Checked on an export of 788 activities
+(`prerequite.json`): 550 now have prerequisites selected and 232 none, where before only the 88
+High Risk ones counted.
+
 ## 4. Export PPC review
 
 The button builds a standalone report for the current range and filters, and opens it in a
