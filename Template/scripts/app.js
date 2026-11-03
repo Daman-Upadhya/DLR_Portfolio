@@ -1268,6 +1268,8 @@
       S = FS[page];
       /* each page shows its own slicers */
       document.querySelectorAll('#filters [data-for]').forEach(function (n) { n.hidden = n.getAttribute('data-for').split(' ').indexOf(page) < 0; });
+      /* the export is the PPC review, so it lives on the Performance page only */
+      exportBtn.hidden = page !== 'performance';
       tabs.forEach(function (t) {
         var on = t.getAttribute('data-page') === page;
         t.setAttribute('aria-selected', on ? 'true' : 'false'); t.tabIndex = on ? 0 : -1;

@@ -89,7 +89,7 @@
 :is(#laHeatKey, #riskHeatKey, #laPqKey) > span:nth-child(n+4) { display: none; }
 
 /* ---------- extra pages (script.js): no slicers ---------- */
-body.xp-open #filters, body.xp-open #fSummary { display: none; }
+body.xp-open #filters, body.xp-open #fSummary, body.xp-open #fExport { display: none; }
 
 .tip { white-space: pre-line; }
 
