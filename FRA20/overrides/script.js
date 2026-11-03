@@ -712,3 +712,210 @@ var FRA20Pages = (function () {
   sec.appendChild(card);
   panel.appendChild(sec);
 })();
+
+/* FRA20 only. Procurement page: the activities planned to start in the next 4 or 8 whole weeks
+   (from next Monday, as on the Look-ahead page; complete work left out), split by whether the
+   "Material" prerequisite is selected on them and whether an open constraint (no completion
+   date) is linked to them. The page has no slicers.
+   Interaction: the 4 / 8 weeks buttons set the window; the matrix quadrants, the totals and the
+   week and trade table cells open the activities behind them in the side panel (window.DLR.openRows). */
+(function () {
+  'use strict';
+  var D = JSON.parse(document.getElementById('data').textContent), M = D.metrics;
+  if (!M || !M.facts) return;
+  var C = window.Charts, A = window.Agg, el = C.el, FX = M.facts, today = FX.today;
+  var PQ = 'material';
+  var DONE = ((D.data && D.data.status && D.data.status.groups) || {}).complete || ['Complete', 'Quality checked'];
+  var panel = FRA20Pages.add('procurement', 'Procurement', '<path d="M8 1.8 14 5v6L8 14.2 2 11V5Z"/><path d="M2 5l6 3.2L14 5"/><path d="M8 8.2v6"/>');
+  if (!panel) return;
+
+  var start = A.addDays(A.mondayOf(today), 7);
+  function day(iso) { return iso ? iso.slice(0, 10) : null; }
+  function wk(a, b) { return C.fmtDate(a, true) + ' – ' + C.fmtDate(b, true); }
+  function plural(n, one, many) { return C.fmtNum(n) + ' ' + (n === 1 ? one : many); }
+  function pct(n, of) { return of ? Math.round(100 * n / of) + '%' : '–'; }
+  var open = {};
+  (FX.constraints || []).forEach(function (c) { if (c.g && !c.cp) (open[c.g] = open[c.g] || []).push(c); });
+  function act(node, fn, label) {
+    node.classList.add('xp-pick'); node.setAttribute('role', 'button'); node.tabIndex = 0;
+    if (label) node.setAttribute('aria-label', label);
+    node.addEventListener('click', function (e) { e.stopPropagation(); C.hideTip(); fn(node); });
+    node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); C.hideTip(); fn(node); } });
+  }
+
+  /* the matrix quadrants: Material selected or not x open constraint linked or not */
+  var Q = [
+    { mat: true, con: true, label: 'Material assigned · open constraint', tone: 'warn' },
+    { mat: true, con: false, label: 'Material assigned · no open constraint', tone: 'good' },
+    { mat: false, con: true, label: 'Not assigned · open constraint', tone: 'warn' },
+    { mat: false, con: false, label: 'Not assigned · no open constraint', tone: 'bad' }
+  ];
+  /* the week and trade table columns */
+  var COLS = [
+    { label: 'Planned to start', f: function () { return true; } },
+    { label: 'Material assigned', f: function (r) { return r.mat; }, tone: 'good' },
+    { label: 'Not assigned', f: function (r) { return !r.mat; }, tone: 'bad' },
+    { label: 'Open constraint', f: function (r) { return r.con; }, tone: 'warn' },
+    { label: 'No open constraint', f: function (r) { return !r.con; } }
+  ];
+
+  function rowsFor(weeks) {
+    var end = A.addDays(start, 7 * weeks - 1), out = [];
+    FX.tasks.forEach(function (t) {
+      var ps = day(t.ps);
+      if (!ps || ps < start || ps > end || t.ae || DONE.indexOf(t.st) >= 0) return;
+      var oc = open[t.g] || [];
+      out.push({ t: t, ps: ps, week: A.mondayOf(ps), mat: (t.pq || []).some(function (p) { return String(p).trim().toLowerCase() === PQ; }),
+                 con: !!oc.length, oc: oc });
+    });
+    return { from: start, to: end, rows: out };
+  }
+  function note(r) {
+    var c = r.oc.length ? plural(r.oc.length, 'open constraint', 'open constraints') + ': ' + r.oc.map(function (x) { return x.t || x.c || 'Untitled'; }).join('; ') : 'No open constraint';
+    return (r.mat ? 'Material assigned' : 'Material not assigned') + ' · ' + c;
+  }
+  /* drill-through: the ones to act on first (not assigned, then no constraint), by planned start */
+  function list(sel, title, opener) {
+    var rows = sel.slice().sort(function (a, b) { return (a.mat - b.mat) || (a.con - b.con) || a.ps.localeCompare(b.ps); }).map(function (r) {
+      var t = r.t;
+      return { id: t.id, name: t.n, trade: t.tr, organisation: t.o, location: t.l, status: t.st, plannedStart: t.ps, plannedEnd: t.pe,
+               actualEnd: t.ae, note: note(r), tone: !r.mat && !r.con ? 'bad' : !r.mat || r.con ? 'warn' : 'good' };
+    });
+    var m = sel.filter(function (r) { return r.mat; }).length, c = sel.filter(function (r) { return r.con; }).length;
+    window.DLR.openRows(rows, title, plural(sel.length, 'activity', 'activities') + ' · ' + m + ' with Material assigned · ' + c + ' with an open constraint',
+                        opener, 'Material / constraints');
+  }
+
+  var sec = el('section', 'pr-page');
+  var title = el('div', 'section-title');
+  title.appendChild(el('h2', null, 'Procurement'));
+  var desc = el('span', 'desc');
+  title.appendChild(desc);
+  sec.appendChild(title);
+  var bar = el('div', 'pr-bar');
+  var seg = el('div', 'xp-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Look-ahead window');
+  var weeks = 4;
+  [4, 8].forEach(function (n) {
+    var b = el('button', 'xp-seg-b' + (n === weeks ? ' on' : ''), n + ' weeks');
+    b.type = 'button'; b.setAttribute('aria-pressed', n === weeks ? 'true' : 'false');
+    b.addEventListener('click', function () {
+      weeks = n;
+      seg.querySelectorAll('button').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      draw();
+    });
+    seg.appendChild(b);
+  });
+  bar.appendChild(seg);
+  sec.appendChild(bar);
+  var body = el('div');
+  sec.appendChild(body);
+  panel.appendChild(sec);
+
+  /* hero: the total and its four splits; matrix: Material (rows) x open constraint (columns) */
+  function top(S) {
+    var rows = S.rows, m = rows.filter(function (r) { return r.mat; }).length, c = rows.filter(function (r) { return r.con; }).length;
+    var wrap = el('div', 'pr-top');
+    var h = el('div', 'card pr-hero');
+    h.appendChild(el('div', 'tp-hero-l', 'Activities planned to start'));
+    var v = el('div', 'en-prog-n'); v.appendChild(el('b', null, C.fmtNum(rows.length))); v.appendChild(el('span', null, wk(S.from, S.to)));
+    h.appendChild(v);
+    var stats = el('div', 'pr-stats');
+    [[m, 'Material assigned', 'good', function (r) { return r.mat; }], [rows.length - m, 'Material not assigned', 'bad', function (r) { return !r.mat; }],
+     [c, 'With open constraint', 'warn', function (r) { return r.con; }], [rows.length - c, 'No open constraint', null, function (r) { return !r.con; }]].forEach(function (x) {
+      var b = el('div', 'pr-stat' + (x[2] ? ' pr-' + x[2] : ''));
+      var n = el('div', 'pr-stat-n'); n.appendChild(el('b', null, C.fmtNum(x[0]))); n.appendChild(el('span', null, pct(x[0], rows.length)));
+      b.appendChild(n); b.appendChild(el('span', 'pr-stat-l', x[1]));
+      if (x[0]) act(b, function (node) { list(rows.filter(x[3]), x[1], node); }, x[1] + ': list them');
+      else b.classList.add('en-zero');
+      stats.appendChild(b);
+    });
+    h.appendChild(stats);
+    wrap.appendChild(h);
+
+    var mx = el('div', 'card pr-matrix');
+    mx.appendChild(el('div'));
+    mx.appendChild(el('div', 'pr-mx-h', 'Open constraint'));
+    mx.appendChild(el('div', 'pr-mx-h', 'No open constraint'));
+    [true, false].forEach(function (mat) {
+      mx.appendChild(el('div', 'pr-mx-r', mat ? 'Material assigned' : 'Material not assigned'));
+      Q.filter(function (q) { return q.mat === mat; }).forEach(function (q) {
+        var sel = rows.filter(function (r) { return r.mat === q.mat && r.con === q.con; });
+        var cell = el('div', 'pr-q pr-' + q.tone + (sel.length ? '' : ' en-zero'));
+        cell.appendChild(el('b', null, C.fmtNum(sel.length)));
+        cell.appendChild(el('span', null, pct(sel.length, rows.length) + ' of the activities'));
+        if (sel.length) act(cell, function (node) { list(sel, q.label, node); }, q.label + ': ' + plural(sel.length, 'activity', 'activities') + ', list them');
+        mx.appendChild(cell);
+      });
+    });
+    wrap.appendChild(mx);
+    return wrap;
+  }
+
+  /* a breakdown table: one row per group (week or trade), the COLS counts, each clickable */
+  function breakdown(head, first, groups, withSearch) {
+    var card = el('div', 'card tp-card');
+    var hd = el('div', 'card-head tp-head');
+    hd.appendChild(el('h2', null, head));
+    var search = null;
+    if (withSearch) {
+      search = el('input', 'xp-search'); search.type = 'search'; search.placeholder = 'Find a trade…'; search.setAttribute('aria-label', 'Find a trade');
+      hd.appendChild(search);
+    }
+    card.appendChild(hd);
+    var wrap = el('div', 'table-wrap'), tbl = el('table', 'tp-table pr-table'), thead = el('thead'), hr = el('tr'), tbody = el('tbody');
+    hr.appendChild(el('th', null, first));
+    COLS.forEach(function (k) { hr.appendChild(el('th', 'tp-kpi-h', k.label)); });
+    hr.appendChild(el('th', null, 'Share with Material'));
+    thead.appendChild(hr); tbl.appendChild(thead); tbl.appendChild(tbody); wrap.appendChild(tbl); card.appendChild(wrap);
+    var empty = el('div', 'xp-empty', withSearch ? 'No trade matches.' : 'No activities planned to start in this window.'); card.appendChild(empty);
+    function fill() {
+      var q = search ? search.value.trim().toLowerCase() : '';
+      var shown = groups.filter(function (g) { return !q || g.label.toLowerCase().indexOf(q) >= 0; });
+      tbody.innerHTML = '';
+      shown.forEach(function (g) {
+        var tr = el('tr'), th = el('th', 'tp-trade');
+        th.appendChild(el('div', null, g.label));
+        if (g.sub) th.appendChild(el('div', 'tp-trade-sub', g.sub));
+        if (g.rows.length) act(th, function (n) { list(g.rows, g.label, n); }, g.label + ': list its activities');
+        tr.appendChild(th);
+        COLS.forEach(function (k) {
+          var sel = g.rows.filter(k.f), td = el('td', 'tp-kpi pr-c' + (sel.length ? ' pr-' + (k.tone || 'all') : ' tp-na'));
+          td.appendChild(el('span', 'tp-pct', sel.length ? C.fmtNum(sel.length) : '·'));
+          if (sel.length) act(td, function (n) { list(sel, g.label + ' · ' + k.label, n); }, g.label + ' · ' + k.label + ': list them');
+          tr.appendChild(td);
+        });
+        var m = g.rows.filter(function (r) { return r.mat; }).length, share = el('td', 'tp-score');
+        var sb = el('div', 'tp-scorebar pr-share'), mini = el('span', 'tp-mini'), gi = el('i');
+        gi.style.width = (g.rows.length ? 100 * m / g.rows.length : 0) + '%'; mini.appendChild(gi);
+        sb.appendChild(mini); sb.appendChild(el('span', 'tp-n', pct(m, g.rows.length)));
+        share.appendChild(sb); tr.appendChild(share);
+        tbody.appendChild(tr);
+      });
+      empty.hidden = !!shown.length;
+    }
+    if (search) search.addEventListener('input', fill);
+    fill();
+    return card;
+  }
+
+  function draw() {
+    var S = rowsFor(weeks);
+    desc.textContent = 'Activities planned to start ' + wk(S.from, S.to) + ' · Material prerequisite and open constraints · status at ' + C.fmtDate(today, true)
+      + (FX.constraints ? '' : ' · no constraint feed');
+    body.innerHTML = '';
+    body.appendChild(top(S));
+    var byWeek = [];
+    for (var i = 0; i < weeks; i++) {
+      (function (w) {
+        byWeek.push({ label: 'Week ' + (i + 1), sub: wk(w, A.addDays(w, 6)), rows: S.rows.filter(function (r) { return r.week === w; }) });
+      })(A.addDays(start, 7 * i));
+    }
+    body.appendChild(breakdown('By week', 'Week', byWeek, false));
+    var by = {};
+    S.rows.forEach(function (r) { var n = r.t.tr || 'No trade'; (by[n] = by[n] || { label: n, rows: [], miss: 0 }).rows.push(r); if (!r.mat) by[n].miss++; });
+    var trades = Object.keys(by).map(function (n) { var g = by[n]; g.sub = plural(g.miss, 'activity', 'activities') + ' without Material'; return g; })
+      .sort(function (a, b) { return b.miss - a.miss || b.rows.length - a.rows.length || a.label.localeCompare(b.label); });
+    body.appendChild(breakdown('By trade', 'Trade', trades, true));
+  }
+  draw();
+})();
