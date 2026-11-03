@@ -268,3 +268,8 @@ table.tp-crit td:first-child { font-weight: 600; color: var(--ink); }
 .en-stat.en-zero { opacity: .55; }
 .en-stat.en-zero b { color: var(--muted); }
 @media (max-width: 600px) { .en-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- page tabs: FRA20 has two extra tabs, so the bar keeps its full width and the
+   filters wrap to the next line when both do not fit (the High-risk page adds a filter) ---------- */
+.cb-row > .page-tabs { flex: none; }
+@media (min-width: 1500px) { .cb-row { flex-wrap: wrap; } .cb-row > .filters { margin-left: auto; } }
