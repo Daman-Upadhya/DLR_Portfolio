@@ -94,7 +94,9 @@
    panel after the shared panels. app.js owns its own tabs and does not know these. Opening one
    hides app.js's panels; leaving for an app.js tab shows that tab's panel again, since app.js
    ignores a click on the page it already has open. The slicers do not apply to these pages and
-   are hidden while one is open. */
+   are hidden while one is open, except on a page added with an app.js page's slicers (add's
+   slicers argument): opening it switches app.js to that page, hides its panel and keeps the
+   filter bar, so the page redraws from that page's dlr:render. */
 var FRA20Pages = (function () {
   'use strict';
   var nav = document.querySelector('.page-tabs'), el = window.Charts.el;
@@ -106,10 +108,15 @@ var FRA20Pages = (function () {
   function shared() { return Array.prototype.filter.call(nav.querySelectorAll('.page-tab'), function (t) { return mine.indexOf(t) < 0 && !t.hidden; }); }
   function show(tab) {
     if (open === tab) return;
+    var sl = tab.getAttribute('data-slicers');
     if (open) select(open, false);
     else shared().forEach(function (t) { if (t.getAttribute('aria-selected') === 'true') prev = t.getAttribute('data-page'); select(t, false); });
+    if (sl && prev !== sl) {
+      var at = nav.querySelector('.page-tab[data-page="' + sl + '"]');
+      open = null; at.click(); select(at, false); prev = sl;
+    }
     select(tab, true); open = tab;
-    document.body.classList.add('xp-open');
+    document.body.classList.toggle('xp-open', !sl);
   }
   if (nav) nav.addEventListener('click', function (e) {
     var t = e.target.closest('.page-tab');
@@ -118,13 +125,15 @@ var FRA20Pages = (function () {
     document.body.classList.remove('xp-open');
     if (t.getAttribute('data-page') === prev) select(t, true);
   }, true);
-  /* add(key, label, svg path) -> the new, empty panel; null on a page without the tab bar */
-  function add(key, label, icon) {
+  /* add(key, label, svg path, app.js page whose slicers apply or nothing) -> the new, empty panel;
+     null on a page without the tab bar */
+  function add(key, label, icon, slicers) {
     var panels = document.querySelectorAll('.page-panel'), last = panels[panels.length - 1];
     if (!nav || !last) return null;
     var id = key.charAt(0).toUpperCase() + key.slice(1), tab = el('button', 'page-tab');
     tab.type = 'button'; tab.id = 'tab' + id;
     tab.setAttribute('role', 'tab'); tab.setAttribute('data-page', key);
+    if (slicers) tab.setAttribute('data-slicers', slicers);
     tab.setAttribute('aria-controls', 'page' + id); tab.setAttribute('aria-selected', 'false'); tab.tabIndex = -1;
     tab.innerHTML = '<svg class="tab-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + icon + '</svg>' + label;
     nav.appendChild(tab); mine.push(tab);
@@ -713,29 +722,27 @@ var FRA20Pages = (function () {
   panel.appendChild(sec);
 })();
 
-/* FRA20 only. Procurement page: the activities planned to start in the next 4 or 8 whole weeks
-   (from next Monday, as on the Look-ahead page; complete work left out), split by whether the
-   "Material" prerequisite is selected on them and whether an open constraint (no completion
-   date) is linked to them. The page has no slicers.
-   Interaction: the 4 / 8 weeks buttons set the window; the matrix quadrants, the totals and the
-   week and trade table cells open the activities behind them in the side panel (window.DLR.openRows). */
+/* FRA20 only. Procurement page: the look-ahead activities planned to start in the range, split by
+   whether the "Material" prerequisite is selected on them and whether an open constraint (no
+   completion date) is linked to them. It uses the Look-ahead page's slicers (date range, trade,
+   location, organisation; FRA20Pages switches app.js to that page) and its activities: Agg's
+   lookahead rows that start in the range, carried-over starts included (complete work is left out).
+   The page redraws on every Look-ahead dlr:render, so changing a slicer here also changes the
+   Look-ahead page and back.
+   Interaction: the totals, the matrix quadrants and the week and trade table cells open the
+   activities behind them in the side panel (window.DLR.openRows). */
 (function () {
   'use strict';
   var D = JSON.parse(document.getElementById('data').textContent), M = D.metrics;
   if (!M || !M.facts) return;
   var C = window.Charts, A = window.Agg, el = C.el, FX = M.facts, today = FX.today;
   var PQ = 'material';
-  var DONE = ((D.data && D.data.status && D.data.status.groups) || {}).complete || ['Complete', 'Quality checked'];
-  var panel = FRA20Pages.add('procurement', 'Procurement', '<path d="M8 1.8 14 5v6L8 14.2 2 11V5Z"/><path d="M2 5l6 3.2L14 5"/><path d="M8 8.2v6"/>');
+  var panel = FRA20Pages.add('procurement', 'Procurement', '<path d="M8 1.8 14 5v6L8 14.2 2 11V5Z"/><path d="M2 5l6 3.2L14 5"/><path d="M8 8.2v6"/>', 'lookahead');
   if (!panel) return;
 
-  var start = A.addDays(A.mondayOf(today), 7);
-  function day(iso) { return iso ? iso.slice(0, 10) : null; }
   function wk(a, b) { return C.fmtDate(a, true) + ' – ' + C.fmtDate(b, true); }
   function plural(n, one, many) { return C.fmtNum(n) + ' ' + (n === 1 ? one : many); }
   function pct(n, of) { return of ? Math.round(100 * n / of) + '%' : '–'; }
-  var open = {};
-  (FX.constraints || []).forEach(function (c) { if (c.g && !c.cp) (open[c.g] = open[c.g] || []).push(c); });
   function act(node, fn, label) {
     node.classList.add('xp-pick'); node.setAttribute('role', 'button'); node.tabIndex = 0;
     if (label) node.setAttribute('aria-label', label);
@@ -759,20 +766,16 @@ var FRA20Pages = (function () {
     { label: 'No open constraint', f: function (r) { return !r.con; } }
   ];
 
-  function rowsFor(weeks) {
-    var end = A.addDays(start, 7 * weeks - 1), out = [];
-    FX.tasks.forEach(function (t) {
-      var ps = day(t.ps);
-      if (!ps || ps < start || ps > end || t.ae || DONE.indexOf(t.st) >= 0) return;
-      var oc = open[t.g] || [];
-      out.push({ t: t, ps: ps, week: A.mondayOf(ps), mat: (t.pq || []).some(function (p) { return String(p).trim().toLowerCase() === PQ; }),
-                 con: !!oc.length, oc: oc });
+  /* the Look-ahead rows that start in the range; es is the start in the range (a carried-over start rolls to its first day) */
+  function rowsOf(L) {
+    return (L.rows || []).filter(function (r) { return r.starts; }).map(function (r) {
+      return { t: r.t, ps: r.es, carried: !!r.lateStart, week: A.mondayOf(r.es), oc: r.open,
+               mat: (r.t.pq || []).some(function (p) { return String(p).trim().toLowerCase() === PQ; }), con: !!r.open.length };
     });
-    return { from: start, to: end, rows: out };
   }
   function note(r) {
     var c = r.oc.length ? plural(r.oc.length, 'open constraint', 'open constraints') + ': ' + r.oc.map(function (x) { return x.t || x.c || 'Untitled'; }).join('; ') : 'No open constraint';
-    return (r.mat ? 'Material assigned' : 'Material not assigned') + ' · ' + c;
+    return (r.mat ? 'Material assigned' : 'Material not assigned') + ' · ' + c + (r.carried ? ' · carried over' : '');
   }
   /* drill-through: the ones to act on first (not assigned, then no constraint), by planned start */
   function list(sel, title, opener) {
@@ -792,32 +795,17 @@ var FRA20Pages = (function () {
   var desc = el('span', 'desc');
   title.appendChild(desc);
   sec.appendChild(title);
-  var bar = el('div', 'pr-bar');
-  var seg = el('div', 'xp-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Look-ahead window');
-  var weeks = 4;
-  [4, 8].forEach(function (n) {
-    var b = el('button', 'xp-seg-b' + (n === weeks ? ' on' : ''), n + ' weeks');
-    b.type = 'button'; b.setAttribute('aria-pressed', n === weeks ? 'true' : 'false');
-    b.addEventListener('click', function () {
-      weeks = n;
-      seg.querySelectorAll('button').forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-      draw();
-    });
-    seg.appendChild(b);
-  });
-  bar.appendChild(seg);
-  sec.appendChild(bar);
   var body = el('div');
   sec.appendChild(body);
   panel.appendChild(sec);
 
   /* hero: the total and its four splits; matrix: Material (rows) x open constraint (columns) */
-  function top(S) {
-    var rows = S.rows, m = rows.filter(function (r) { return r.mat; }).length, c = rows.filter(function (r) { return r.con; }).length;
+  function top(rows, from, to) {
+    var m = rows.filter(function (r) { return r.mat; }).length, c = rows.filter(function (r) { return r.con; }).length;
     var wrap = el('div', 'pr-top');
     var h = el('div', 'card pr-hero');
     h.appendChild(el('div', 'tp-hero-l', 'Activities planned to start'));
-    var v = el('div', 'en-prog-n'); v.appendChild(el('b', null, C.fmtNum(rows.length))); v.appendChild(el('span', null, wk(S.from, S.to)));
+    var v = el('div', 'en-prog-n'); v.appendChild(el('b', null, C.fmtNum(rows.length))); v.appendChild(el('span', null, from && to ? wk(from, to) : ''));
     h.appendChild(v);
     var stats = el('div', 'pr-stats');
     [[m, 'Material assigned', 'good', function (r) { return r.mat; }], [rows.length - m, 'Material not assigned', 'bad', function (r) { return !r.mat; }],
@@ -867,7 +855,7 @@ var FRA20Pages = (function () {
     COLS.forEach(function (k) { hr.appendChild(el('th', 'tp-kpi-h', k.label)); });
     hr.appendChild(el('th', null, 'Share with Material'));
     thead.appendChild(hr); tbl.appendChild(thead); tbl.appendChild(tbody); wrap.appendChild(tbl); card.appendChild(wrap);
-    var empty = el('div', 'xp-empty', withSearch ? 'No trade matches.' : 'No activities planned to start in this window.'); card.appendChild(empty);
+    var empty = el('div', 'xp-empty', withSearch ? 'No trade matches.' : 'No activities planned to start in this range.'); card.appendChild(empty);
     function fill() {
       var q = search ? search.value.trim().toLowerCase() : '';
       var shown = groups.filter(function (g) { return !q || g.label.toLowerCase().indexOf(q) >= 0; });
@@ -898,24 +886,30 @@ var FRA20Pages = (function () {
     return card;
   }
 
-  function draw() {
-    var S = rowsFor(weeks);
-    desc.textContent = 'Activities planned to start ' + wk(S.from, S.to) + ' · Material prerequisite and open constraints · status at ' + C.fmtDate(today, true)
-      + (FX.constraints ? '' : ' · no constraint feed');
+  function draw(V, S) {
+    var rows = rowsOf(V.lookahead || {});
+    /* an open-ended range ends at the rows' first or last start */
+    var starts = rows.map(function (r) { return r.ps; }).sort();
+    var from = S.from || starts[0], to = S.to || starts[starts.length - 1];
+    desc.textContent = 'Activities planned to start ' + (from && to ? wk(from, to) : 'in the range') + ' · Material prerequisite and open constraints · Look-ahead filters · status at '
+      + C.fmtDate(today, true) + (FX.constraints ? '' : ' · no constraint feed');
     body.innerHTML = '';
-    body.appendChild(top(S));
+    body.appendChild(top(rows, from, to));
     var byWeek = [];
-    for (var i = 0; i < weeks; i++) {
-      (function (w) {
-        byWeek.push({ label: 'Week ' + (i + 1), sub: wk(w, A.addDays(w, 6)), rows: S.rows.filter(function (r) { return r.week === w; }) });
-      })(A.addDays(start, 7 * i));
+    if (from && to) {
+      for (var w = A.mondayOf(from), i = 1; w <= to; w = A.addDays(w, 7), i++) {
+        (function (w, i) {
+          var a = w < from ? from : w, e = A.addDays(w, 6), b = e > to ? to : e;
+          byWeek.push({ label: 'Week ' + i, sub: wk(a, b), rows: rows.filter(function (r) { return r.week === w; }) });
+        })(w, i);
+      }
     }
     body.appendChild(breakdown('By week', 'Week', byWeek, false));
     var by = {};
-    S.rows.forEach(function (r) { var n = r.t.tr || 'No trade'; (by[n] = by[n] || { label: n, rows: [], miss: 0 }).rows.push(r); if (!r.mat) by[n].miss++; });
+    rows.forEach(function (r) { var n = r.t.tr || 'No trade'; (by[n] = by[n] || { label: n, rows: [], miss: 0 }).rows.push(r); if (!r.mat) by[n].miss++; });
     var trades = Object.keys(by).map(function (n) { var g = by[n]; g.sub = plural(g.miss, 'activity', 'activities') + ' without Material'; return g; })
       .sort(function (a, b) { return b.miss - a.miss || b.rows.length - a.rows.length || a.label.localeCompare(b.label); });
     body.appendChild(breakdown('By trade', 'Trade', trades, true));
   }
-  draw();
+  document.addEventListener('dlr:render', function (e) { if (e.detail && e.detail.page === 'lookahead') draw(e.detail.V, e.detail.S); });
 })();
