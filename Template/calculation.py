@@ -452,9 +452,10 @@ def _constraints(raw, tasks_by_guid: dict, data: dict) -> list[dict] | None:
             "priority": _text(r.get("priority")),
             "owner": " ".join((_text(r.get("owner")) or "").split()) or None,  # source names carry doubled spaces
             "ownerOrganisation": _text(r.get("ownerOrganisation")),
-            # who raised it: the export feed's name for the author is not documented, so take the first present
-            "author": " ".join((next((_text(r.get(k)) for k in ("author", "authorName", "createdBy", "createdByName", "raisedBy", "creator")
-                                      if _text(r.get(k))), None) or "").split()) or None,
+            # organisation of whoever raised it: the export feed's field name is not documented, so take the first present
+            "authorOrganisation": " ".join((next((_text(r.get(k)) for k in ("authorOrganisation", "authorOrganization", "authorOrg",
+                                                                             "createdByOrganisation", "createdByOrganization", "raisedByOrganisation",
+                                                                             "creatorOrganisation") if _text(r.get(k))), None) or "").split()) or None,
             "location": _text(r.get("location")),
             "trade": _text(r.get("trade")),
             "creation": parse_date(r.get("creationDate")),
@@ -1036,7 +1037,7 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
                    hr high-risk types (only on flagged activities; see data.highRisk),
                    pq selected prerequisites (only when any; facts.prerequisites lists every name in the feed)
       commitments  g guid, cw committed week, ce committed end, ok Custom_CommittedPPC, a auto, ln linked
-      constraints  u UniqueID, t title, c category, p priority, ow owner, oo owner organisation, au author, l location,
+      constraints  u UniqueID, t title, c category, p priority, ow owner, oo owner organisation, ao author (raiser) organisation, l location,
                    tr trade, cr creation, tg target, cm commitment, cp completion, s status,
                    g activity guid, tps linked activity planned start, tn linked activity name"""
     tasks = []
@@ -1057,7 +1058,7 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
         {"g": c["guid"], "cw": c["committedWeek"], "ce": c["committedEnd"], "ok": c["ppc"], "a": c["auto"], "ln": c["linked"]}
         for c in model["commitments"]]
     cons = None if model["constraints"] is None else [
-        {"u": r["uid"], "t": r["title"], "c": r["category"], "p": r["priority"], "ow": r["owner"], "oo": r["ownerOrganisation"], "au": r.get("author"), "l": r["location"],
+        {"u": r["uid"], "t": r["title"], "c": r["category"], "p": r["priority"], "ow": r["owner"], "oo": r["ownerOrganisation"], "ao": r.get("authorOrganisation"), "l": r["location"],
          "tr": r["trade"], "cr": r["creation"], "tg": r["target"], "cm": r["commitment"], "cp": r["completion"], "s": r["status"],
          "g": r["activityGuid"], "tps": r["taskPlannedStart"], "tn": r["taskName"]}
         for r in model["constraints"]]

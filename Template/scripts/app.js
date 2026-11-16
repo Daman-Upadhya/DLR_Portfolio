@@ -376,7 +376,7 @@
     constraints: [
       { h: 'Constraint', cell: function (r) { return nameCell(r.title, r.activities.length ? r.activities.join(' · ') : 'not linked to an activity'); } },
       { h: 'Category', cell: function (r) { return textCell(r.category); } },
-      { h: 'Raised by', cell: function (r) { return textCell(r.author); } },
+      { h: 'Raised by organisation', cell: function (r) { return textCell(r.authorOrganisation); } },
       { h: 'Owner', cell: function (r) { return textCell(r.owner); } },
       { h: 'Owner organisation', cell: function (r) { return textCell(r.ownerOrganisation); } },
       { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
@@ -407,12 +407,12 @@
            ['Organisation', 'organisation'], ['Location', 'location'], ['Status', 'status'], ['Planned start', 'plannedStart'], ['Start (in progress from today)', 'effStart'],
            ['Planned end', 'plannedEnd'], ['Actual start', 'actualStart'],
            ['Should have started', function (r) { return r.lateStart ? 'Yes' : ''; }], ['Past planned finish', function (r) { return r.overdue ? 'Yes' : ''; }]],
-    constraint: [['Constraint ID', 'id'], ['Constraint', 'title'], ['Category', 'category'], ['Priority', 'priority'], ['Raised by', 'author'], ['Owner', 'owner'], ['Owner organisation', 'ownerOrganisation'], ['Trade', 'trade'],
+    constraint: [['Constraint ID', 'id'], ['Constraint', 'title'], ['Category', 'category'], ['Priority', 'priority'], ['Owner', 'owner'], ['Owner organisation', 'ownerOrganisation'], ['Raised by organisation', 'authorOrganisation'], ['Trade', 'trade'],
                  ['Location', 'location'], ['Status', 'status'], ['Created', 'created'], ['Target', 'target'], ['Committed', 'commitment'], ['Completed', 'completion'],
                  ['Overdue days', 'overdueDays'], ['Lag days', 'lagDays'], ['Linked activities', function (r) { return r.activities.join('; '); }]]
   };
   function rowText(r) {
-    return [r.name, r.id, r.title, r.trade, r.organisation, r.location, r.status, r.category, r.author, r.owner, (r.activities || []).join(' '), (r.categories || []).join(' '), (r.riskTypes || []).join(' ')]
+    return [r.name, r.id, r.title, r.trade, r.organisation, r.location, r.status, r.category, r.authorOrganisation, r.ownerOrganisation, r.owner, (r.activities || []).join(' '), (r.categories || []).join(' '), (r.riskTypes || []).join(' ')]
       .filter(Boolean).join(' ').toLowerCase();
   }
   function drawerRows() {
@@ -1563,16 +1563,17 @@
   var riskHeatAll = false; /* the heat map shows the 12 trades with the most high-risk activities until expanded */
   var RISK_HEAT_ROWS = 12;
 
-  /* constraints: raised by (author) x owner. Each cell is the open constraints that author raised
-     for that owner, shaded by the count, with the overdue ones (target before today) in red below.
-     The 12 authors and 10 owners with the most open show until expanded; the other owners fold
-     into one column. A cell, row, column or total lists its constraints in the side panel. */
+  /* constraints: raising organisation (the author's) x owner organisation. Each cell is the open
+     constraints that organisation raised for the owning one, shaded by the count, with the overdue
+     ones (target before today) in red below. The 12 raising and 10 owning organisations with the
+     most open show until expanded; the other owners fold into one column. A cell, row, column or
+     total lists its constraints in the side panel. */
   var AO_ROWS = 12, AO_COLS = 10, aoAll = false;
   function renderAuthorOwner(AO, rangeText) {
     var host = document.getElementById('consAo'), key = document.getElementById('consAoKey'), moreBtn = document.getElementById('consAoMore');
     if (!host) return;
     host.innerHTML = ''; key.innerHTML = ''; moreBtn.hidden = true;
-    if (!AO || !AO.hasAuthor) { host.appendChild(el('p', 'empty', 'The constraint feed does not say who raised each constraint.')); setText('consAoDesc', ''); return; }
+    if (!AO || !AO.hasAuthor) { host.appendChild(el('p', 'empty', 'The constraint feed does not give the organisation that raised each constraint.')); setText('consAoDesc', ''); return; }
     if (!AO.open) { host.appendChild(el('p', 'empty', 'No open constraints in the selected range.')); setText('consAoDesc', ''); return; }
     var owners = aoAll ? AO.owners : AO.owners.slice(0, AO_COLS), rest = aoAll ? [] : AO.owners.slice(AO_COLS);
     var shownOwners = owners.map(function (o) { return o.label; });
@@ -1592,14 +1593,14 @@
       return td;
     }
     var tbl = el('table', 'heat ao-heat'), thead = el('thead'), hr = el('tr');
-    hr.appendChild(el('th', 'ao-corner', 'Raised by \u2193 \u00b7 Owner \u2192'));
+    hr.appendChild(el('th', 'ao-corner', 'Raised by \u2193 \u00b7 Owner organisation \u2192'));
     owners.forEach(function (o) {
       var th = el('th', 'ao-own', o.label);
       makePick(th, ll({ owner: o.label }, 'Owned by ' + o.label), false);
       th.title = o.label + ': ' + plural(o.open, 'open constraint') + ', ' + C.fmtNum(o.overdue) + ' overdue \u00b7 click to list them';
       hr.appendChild(th);
     });
-    if (rest.length) hr.appendChild(el('th', 'ao-own', 'Other owners (' + rest.length + ')'));
+    if (rest.length) hr.appendChild(el('th', 'ao-own', 'Other organisations (' + rest.length + ')'));
     hr.appendChild(el('th', 'num', 'Open'));
     thead.appendChild(hr); tbl.appendChild(thead);
     var tb = el('tbody');
@@ -1614,31 +1615,31 @@
       if (rest.length) {
         var rv = { open: 0, overdue: 0 };
         rest.forEach(function (o) { var c = a.cells[o.label]; if (c) { rv.open += c.open; rv.overdue += c.overdue; } });
-        tr.appendChild(cellOf(rv, a.label + ' \u2192 other owners', { author: a.label, notOwners: shownOwners }, true));
+        tr.appendChild(cellOf(rv, a.label + ' \u2192 other organisations', { author: a.label, notOwners: shownOwners }, true));
       }
       tr.appendChild(cellOf(a, 'Raised by ' + a.label, { author: a.label }, false));
       tb.appendChild(tr);
     });
     tbl.appendChild(tb);
     var tf = el('tfoot'), fr = el('tr');
-    fr.appendChild(el('th', null, 'All authors'));
+    fr.appendChild(el('th', null, 'All organisations'));
     owners.forEach(function (o) { fr.appendChild(cellOf(o, 'Owned by ' + o.label, { owner: o.label }, false)); });
     if (rest.length) {
       var ro = rest.reduce(function (s, o) { s.open += o.open; s.overdue += o.overdue; return s; }, { open: 0, overdue: 0 });
-      fr.appendChild(cellOf(ro, 'Other owners', { notOwners: shownOwners }, false));
+      fr.appendChild(cellOf(ro, 'Owned by other organisations', { notOwners: shownOwners }, false));
     }
     fr.appendChild(cellOf(AO, 'All open constraints', {}, false));
     tf.appendChild(fr); tbl.appendChild(tf);
     host.appendChild(tbl);
     var big = AO.authors.length > AO_ROWS || AO.owners.length > AO_COLS;
     moreBtn.hidden = !big;
-    moreBtn.textContent = aoAll ? 'Show the top ' + AO_ROWS + ' authors and ' + AO_COLS + ' owners' : 'Show all ' + plural(AO.authors.length, 'author') + ' and ' + plural(AO.owners.length, 'owner');
+    moreBtn.textContent = aoAll ? 'Show the top ' + AO_ROWS + ' raising and ' + AO_COLS + ' owning organisations' : 'Show all ' + plural(AO.authors.length, 'raising organisation') + ' and ' + plural(AO.owners.length, 'owning organisation');
     moreBtn.onclick = function () { aoAll = !aoAll; renderAuthorOwner(AO, rangeText); };
     key.appendChild(el('span', null, '1')); key.appendChild(el('span', 'heat-ramp ao-ramp')); key.appendChild(el('span', null, C.fmtNum(max)));
-    key.appendChild(el('span', null, '\u00b7 open constraints per author and owner; the red line is how many are overdue (target before today).'));
-    setText('consAoDesc', plural(AO.open, 'open constraint') + ', ' + C.fmtNum(AO.overdue) + ' overdue \u00b7 ' + plural(AO.authors.length, 'author') + ' \u00d7 ' + plural(AO.owners.length, 'owner')
+    key.appendChild(el('span', null, '\u00b7 open constraints per raising and owning organisation; the red line is how many are overdue (target before today).'));
+    setText('consAoDesc', plural(AO.open, 'open constraint') + ', ' + C.fmtNum(AO.overdue) + ' overdue \u00b7 ' + plural(AO.authors.length, 'raising organisation') + ' \u00d7 ' + plural(AO.owners.length, 'owning organisation')
       + (big && !aoAll ? ' \u00b7 the busiest shown' : ''));
-    ensureListBtn('consAoDesc', ll({}, 'Open constraints by author and owner'));
+    ensureListBtn('consAoDesc', ll({}, 'Open constraints by raising and owning organisation'));
   }
   function renderRisk(V, S, rangeText) {
     var R = V.risk, UN = V.sets.UN;

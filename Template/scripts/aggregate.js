@@ -330,10 +330,10 @@
         });
       }
       var openFirsts = firsts.filter(function (r) { return !r.cp; });
-      /* author (who raised it) x owner: open constraints, and how many of them are overdue */
-      var ao = { authors: {}, owners: {}, open: 0, overdue: 0, hasAuthor: firsts.some(function (r) { return r.au; }) };
+      /* raising (author) organisation x owner organisation: open constraints, and how many of them are overdue */
+      var ao = { authors: {}, owners: {}, open: 0, overdue: 0, hasAuthor: firsts.some(function (r) { return r.ao; }) };
       openFirsts.forEach(function (r) {
-        var a = r.au || UN, o = r.ow || UN, late = r.tg && r.tg < today ? 1 : 0;
+        var a = r.ao || UN, o = r.oo || UN, late = r.tg && r.tg < today ? 1 : 0;
         var ar = ao.authors[a] = ao.authors[a] || { label: a, open: 0, overdue: 0, cells: {} };
         var oc = ao.owners[o] = ao.owners[o] || { label: o, open: 0, overdue: 0 };
         var c = ar.cells[o] = ar.cells[o] || { open: 0, overdue: 0 };
@@ -604,7 +604,7 @@
        'constraints'  constraints with a target in the range (spec.l6w for the L6W tiles),
                       spec.pred: all | open | overdue | pastTarget | onTime | lag | unlinked |
                       beforeStart | status | category | week (+ start, end, state) |
-                      authorOwner (open; optional author, owner, notOwners [..], overdue) */
+                      authorOwner (open; optional author, owner, notOwners [..], overdue; all organisations: ao / oo) */
   function records(V, spec, data) {
     var X = V.sets, UN = X.UN, today = X.today;
     var mapping = get(data, 'reasons.categories', {}) || {};
@@ -680,8 +680,8 @@
         trade: function (r) { return (r.tr || UN) === spec.value && (!spec.state || consState(r, today) === spec.state); },
         authorOwner: function (r) {
           if (r.cp) return false;
-          var o = r.ow || UN;
-          return (!spec.author || (r.au || UN) === spec.author) && (!spec.owner || o === spec.owner)
+          var o = r.oo || UN;
+          return (!spec.author || (r.ao || UN) === spec.author) && (!spec.owner || o === spec.owner)
             && (!spec.notOwners || spec.notOwners.indexOf(o) < 0) && (!spec.overdue || (r.tg && r.tg < today));
         },
         age: function (r) { if (r.cp || !r.cr) return false; var a = daysBetween(r.cr, today); return a >= spec.from && (spec.to === null || a <= spec.to); },
@@ -700,7 +700,7 @@
       });
       return order.map(function (u) {
         var r = keep[u];
-        return { kind: 'constraint', id: u, title: r.t, category: r.c, priority: r.p, owner: r.ow, ownerOrganisation: r.oo, author: r.au, trade: r.tr, location: r.l, status: r.s,
+        return { kind: 'constraint', id: u, title: r.t, category: r.c, priority: r.p, owner: r.ow, ownerOrganisation: r.oo, authorOrganisation: r.ao, trade: r.tr, location: r.l, status: r.s,
                  created: r.cr, target: r.tg, commitment: r.cm, completion: r.cp,
                  activities: Object.keys(names[u] || {}),
                  overdueDays: r.tg && r.tg < today && !r.cp ? daysBetween(r.tg, today) : null,
