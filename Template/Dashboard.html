@@ -207,7 +207,11 @@ table.heat tfoot th { text-align: left; font-size: 12px; font-weight: 600; color
 .ao-heat thead th.ao-corner { text-align: left; font-weight: 500; color: var(--faint); }
 .ao-heat td.ao-c { height: 40px; line-height: 1.15; }
 .ao-heat td.ao-c span { display: block; }
+.ao-heat td.ao-c .ao-n { font-size: 12.5px; }
 .ao-heat .ao-od { font-size: 10.5px; font-weight: 600; color: var(--bad); }
+.ao-heat .ao-od.none { color: var(--muted); font-weight: 500; }
+.ao-heat .ao-od.pick { cursor: pointer; text-decoration: underline dotted; }
+.ao-heat td.ao-c { min-width: 78px; }
 .ao-ramp { background: linear-gradient(90deg, color-mix(in srgb, var(--s-rej) 10%, var(--card)), color-mix(in srgb, var(--s-rej) 70%, var(--card))); }
 .heat-ramp { width: 120px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, color-mix(in srgb, var(--risk) 12%, var(--card)), var(--risk)); }
 .risk-sub { margin-top: 22px; }
@@ -828,21 +832,10 @@ footer code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
       </div>
       <div class="chips cons-key" id="consStateLegend"></div>
 
-      <div class="grid grid-wide cons-gap">
-      <div class="card">
+      <div class="card cons-gap">
         <div class="card-head"><h2>By target week</h2><span class="desc" id="consWeeksDesc"></span></div>
         <svg class="chart" id="consWeeksChart" role="img" aria-label="Constraints due per target week: completed by target, completed after target and still open"></svg>
         <div class="chips" id="consWeeksLegend" style="margin-top:10px"></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h2>Overdue constraints</h2><span class="desc" id="consOverdueDesc"></span></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Constraint</th><th>Category</th><th>Owner</th><th class="num">Target</th><th class="num">Overdue</th><th>Status</th></tr></thead>
-            <tbody id="consOverdueBody"></tbody>
-          </table>
-        </div>
-      </div>
       </div>
 
       <div class="card cons-gap">

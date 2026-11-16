@@ -330,22 +330,20 @@
         });
       }
       var openFirsts = firsts.filter(function (r) { return !r.cp; });
-      /* raising (author) organisation x owner organisation: open constraints, and how many of them are overdue */
-      var ao = { authors: {}, owners: {}, open: 0, overdue: 0, hasAuthor: firsts.some(function (r) { return r.ao; }) };
+      /* raising (author) organisation x owner organisation: open constraints (no completion date) and
+         how many of those are overdue (target before today). One list of organisations, in one order
+         for both axes: most open constraints raised + owned first. */
+      var ao = { orgs: [], cells: {}, open: 0, overdue: 0, hasAuthor: firsts.some(function (r) { return r.ao; }) }, aoBy = {};
+      function aoOrg(k) { return aoBy[k] = aoBy[k] || { label: k, raised: { open: 0, overdue: 0 }, owned: { open: 0, overdue: 0 } }; }
       openFirsts.forEach(function (r) {
         var a = r.ao || UN, o = r.oo || UN, late = r.tg && r.tg < today ? 1 : 0;
-        var ar = ao.authors[a] = ao.authors[a] || { label: a, open: 0, overdue: 0, cells: {} };
-        var oc = ao.owners[o] = ao.owners[o] || { label: o, open: 0, overdue: 0 };
-        var c = ar.cells[o] = ar.cells[o] || { open: 0, overdue: 0 };
-        ar.open++; oc.open++; c.open++; ao.open++;
-        ar.overdue += late; oc.overdue += late; c.overdue += late; ao.overdue += late;
+        var row = ao.cells[a] = ao.cells[a] || {}, cell = row[o] = row[o] || { open: 0, overdue: 0 };
+        [aoOrg(a).raised, aoOrg(o).owned, cell, ao].forEach(function (x) { x.open++; x.overdue += late; });
       });
-      function byOpen(m) {
-        return Object.keys(m).map(function (k) { return m[k]; }).sort(function (x, y) {
-          return y.open - x.open || y.overdue - x.overdue || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0);
-        });
-      }
-      ao.authors = byOpen(ao.authors); ao.owners = byOpen(ao.owners);
+      ao.orgs = Object.keys(aoBy).map(function (k) { return aoBy[k]; }).sort(function (x, y) {
+        return (y.raised.open + y.owned.open) - (x.raised.open + x.owned.open) || (y.raised.overdue + y.owned.overdue) - (x.raised.overdue + x.owned.overdue)
+          || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0);
+      });
       var resolve = firsts.filter(function (r) { return r.cp && r.cr; }).map(function (r) { return daysBetween(r.cr, r.cp); });
       var ages = openFirsts.filter(function (r) { return r.cr; }).map(function (r) { return daysBetween(r.cr, today); });
       var ageing = (get(data, 'constraints.ageBuckets', null) || [[0, 7], [8, 14], [15, 30], [31, 60], [61, null]]).map(function (b) {
@@ -604,7 +602,7 @@
        'constraints'  constraints with a target in the range (spec.l6w for the L6W tiles),
                       spec.pred: all | open | overdue | pastTarget | onTime | lag | unlinked |
                       beforeStart | status | category | week (+ start, end, state) |
-                      authorOwner (open; optional author, owner, notOwners [..], overdue; all organisations: ao / oo) */
+                      authorOwner (open; optional author, owner, notAuthors [..], notOwners [..], overdue; organisations ao / oo) */
   function records(V, spec, data) {
     var X = V.sets, UN = X.UN, today = X.today;
     var mapping = get(data, 'reasons.categories', {}) || {};
@@ -680,9 +678,9 @@
         trade: function (r) { return (r.tr || UN) === spec.value && (!spec.state || consState(r, today) === spec.state); },
         authorOwner: function (r) {
           if (r.cp) return false;
-          var o = r.oo || UN;
-          return (!spec.author || (r.ao || UN) === spec.author) && (!spec.owner || o === spec.owner)
-            && (!spec.notOwners || spec.notOwners.indexOf(o) < 0) && (!spec.overdue || (r.tg && r.tg < today));
+          var a = r.ao || UN, o = r.oo || UN;
+          return (!spec.author || a === spec.author) && (!spec.owner || o === spec.owner)
+            && (!spec.notAuthors || spec.notAuthors.indexOf(a) < 0) && (!spec.notOwners || spec.notOwners.indexOf(o) < 0) && (!spec.overdue || (r.tg && r.tg < today));
         },
         age: function (r) { if (r.cp || !r.cr) return false; var a = daysBetween(r.cr, today); return a >= spec.from && (spec.to === null || a <= spec.to); },
         week: function (r) {
