@@ -258,6 +258,26 @@ def _prerequisites(r: dict, catalogue: dict) -> list[str] | None:
     return [n for _, n in sorted(set(chosen))]
 
 
+def _prereq_marks(r: dict) -> list[list] | None:
+    """Every named prerequisite listed on a task row as [name, sortIndex, ready], ready being its
+    makeReady flag (ticked as made ready in VisiLean). For overrides/extra_calc.py (FRA20's
+    Energisation drill-through shows each prerequisite and whether it is marked); no metric reads
+    it, and it does not touch the feed's prerequisite catalogue. None when the row has no list."""
+    items = r.get("prerequisites")
+    if not isinstance(items, list):
+        return None
+    out = {}
+    for p in items:
+        if not isinstance(p, dict):
+            continue
+        name = _text(p.get("prerequisiteName"))
+        if not name:
+            continue
+        idx = p.get("sortIndex") if isinstance(p.get("sortIndex"), (int, float)) else 999
+        out[name] = [name, idx, bool(p.get("makeReady")) or bool(out.get(name, [0, 0, False])[2])]
+    return sorted(out.values(), key=lambda x: (x[1], x[0]))
+
+
 def _tasks(raw: list, data: dict) -> tuple[list[dict], dict, list[dict]]:
     types = set(_get(data, "taskTypes", ["Construction", "Design"]) or [])
     by_guid: "OrderedDict[str, dict]" = OrderedDict()
@@ -279,7 +299,8 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict, list[dict]]:
                             "type": ttype, "status": _text(r.get("status")), "trade": _text(r.get("trade")),
                             "location": _text(r.get("location")), "plannedStart": parse_date(r.get("plannedStartDate")),
                             "plannedEnd": parse_date(r.get("plannedEndDate")),
-                            "actualEnd": parse_date(r.get("actualEndDate")), "custom": _custom_fields(r)}
+                            "actualEnd": parse_date(r.get("actualEndDate")), "custom": _custom_fields(r),
+                            "prereqMarks": _prereq_marks(r)}
             continue
         guid = _text(r.get("guid")) or _text(r.get("taskId"))
         if not guid:
@@ -319,6 +340,7 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict, list[dict]]:
                 "prerequisites": None,
                 "custom": None,   # {field name: value}, for overrides/extra_calc.py; not embedded in the page
                 "plannedWorkers": None,   # totalPlannedWorkers, for overrides/extra_calc.py; not embedded
+                "prereqMarks": None,   # [[name, sortIndex, ready]], for overrides/extra_calc.py; not embedded
             }
             # Planned_PPC: finished in the same ISO week it was planned to finish
             t["plannedPPC"] = bool(t["actualWeek"] and t["actualWeek"] == t["plannedWeek"])
@@ -330,6 +352,8 @@ def _tasks(raw: list, data: dict) -> tuple[list[dict], dict, list[dict]]:
             t["events"].add(event)
         if t["prerequisites"] is None:
             t["prerequisites"] = _prerequisites(r, catalogue)
+        if t["prereqMarks"] is None:
+            t["prereqMarks"] = _prereq_marks(r)
         if t["highRisk"] is None and r.get("customField"):
             t["highRisk"] = _high_risk(r, data)
         if t["custom"] is None and r.get("customField"):
@@ -428,6 +452,9 @@ def _constraints(raw, tasks_by_guid: dict, data: dict) -> list[dict] | None:
             "priority": _text(r.get("priority")),
             "owner": " ".join((_text(r.get("owner")) or "").split()) or None,  # source names carry doubled spaces
             "ownerOrganisation": _text(r.get("ownerOrganisation")),
+            # who raised it: the export feed's name for the author is not documented, so take the first present
+            "author": " ".join((next((_text(r.get(k)) for k in ("author", "authorName", "createdBy", "createdByName", "raisedBy", "creator")
+                                      if _text(r.get(k))), None) or "").split()) or None,
             "location": _text(r.get("location")),
             "trade": _text(r.get("trade")),
             "creation": parse_date(r.get("creationDate")),
@@ -1009,7 +1036,7 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
                    hr high-risk types (only on flagged activities; see data.highRisk),
                    pq selected prerequisites (only when any; facts.prerequisites lists every name in the feed)
       commitments  g guid, cw committed week, ce committed end, ok Custom_CommittedPPC, a auto, ln linked
-      constraints  u UniqueID, t title, c category, p priority, ow owner, oo owner organisation, l location,
+      constraints  u UniqueID, t title, c category, p priority, ow owner, oo owner organisation, au author, l location,
                    tr trade, cr creation, tg target, cm commitment, cp completion, s status,
                    g activity guid, tps linked activity planned start, tn linked activity name"""
     tasks = []
@@ -1030,7 +1057,7 @@ def facts(model: dict, derived: dict, data: dict, today: date) -> dict:
         {"g": c["guid"], "cw": c["committedWeek"], "ce": c["committedEnd"], "ok": c["ppc"], "a": c["auto"], "ln": c["linked"]}
         for c in model["commitments"]]
     cons = None if model["constraints"] is None else [
-        {"u": r["uid"], "t": r["title"], "c": r["category"], "p": r["priority"], "ow": r["owner"], "oo": r["ownerOrganisation"], "l": r["location"],
+        {"u": r["uid"], "t": r["title"], "c": r["category"], "p": r["priority"], "ow": r["owner"], "oo": r["ownerOrganisation"], "au": r.get("author"), "l": r["location"],
          "tr": r["trade"], "cr": r["creation"], "tg": r["target"], "cm": r["commitment"], "cp": r["completion"], "s": r["status"],
          "g": r["activityGuid"], "tps": r["taskPlannedStart"], "tn": r["taskName"]}
         for r in model["constraints"]]

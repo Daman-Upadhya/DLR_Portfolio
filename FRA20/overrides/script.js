@@ -247,11 +247,28 @@ var FRA20Pages = (function () {
     var rows = sel.slice().sort(function (a, b) { return RANK[b.st] - RANK[a.st] || a.pe.localeCompare(b.pe) || a.machine.localeCompare(b.machine); })
       .map(function (it) {
         return { id: it.t.id, name: it.machine, trade: it.t.tr, location: it.t.l, status: it.t.st, plannedStart: it.t.ps,
-                 plannedEnd: it.t.pe, actualEnd: it.t.ae, note: it.group + ' · stage ' + it.stage + ' · ' + stateText(it), tone: ST[it.st].tone };
+                 plannedEnd: it.t.pe, actualEnd: it.t.ae, note: it.group + ' · stage ' + it.stage + ' · ' + stateText(it), tone: ST[it.st].tone,
+                 pq: pqMap(it.t) };
       });
     var c = counts(sel);
     window.DLR.openRows(rows, title, plural(c.n, 'machine', 'machines') + ' · ' + c.done + ' completed · ' + c.late + ' late · ' + c.due + ' due in 7 days',
-                        opener, 'Energisation');
+                        opener, 'Energisation', PQ_NAMES.map(pqCol));
+  }
+  /* prerequisites: one drawer column each. On the activity and marked made ready = ✓ (green),
+     on it but not marked = ✗ (red), not on the activity = — */
+  var PQ_NAMES = (M.energisation.prereqs || []).slice();
+  src.forEach(function (t) { (t.pq || []).forEach(function (p) { if (PQ_NAMES.indexOf(p[0]) < 0) PQ_NAMES.push(p[0]); }); });
+  function pqMap(t) { var m = {}; (t.pq || []).forEach(function (p) { m[p[0]] = !!p[1]; }); return m; }
+  function pqCol(name) {
+    return {
+      h: name,
+      cell: function (r) {
+        if (!(name in r.pq)) return { text: '—', cls: 'en-pq', title: name + ': not on this activity' };
+        return r.pq[name] ? { text: '✓', cls: 'en-pq tone-text-good', title: name + ': marked' }
+                          : { text: '✗', cls: 'en-pq tone-text-bad', title: name + ': not marked' };
+      },
+      csv: function (r) { return !(name in r.pq) ? 'Not on activity' : r.pq[name] ? 'Marked' : 'Not marked'; }
+    };
   }
 
   var panel = FRA20Pages.add('energisation', 'Energisation', '<path d="M9.2 1.6 3.6 9h4.1l-1 5.4L12.4 7H8.3z"/>');

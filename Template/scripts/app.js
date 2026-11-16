@@ -376,6 +376,7 @@
     constraints: [
       { h: 'Constraint', cell: function (r) { return nameCell(r.title, r.activities.length ? r.activities.join(' · ') : 'not linked to an activity'); } },
       { h: 'Category', cell: function (r) { return textCell(r.category); } },
+      { h: 'Raised by', cell: function (r) { return textCell(r.author); } },
       { h: 'Owner', cell: function (r) { return textCell(r.owner); } },
       { h: 'Owner organisation', cell: function (r) { return textCell(r.ownerOrganisation); } },
       { h: 'Trade', cell: function (r) { return textCell(r.trade); } },
@@ -406,12 +407,12 @@
            ['Organisation', 'organisation'], ['Location', 'location'], ['Status', 'status'], ['Planned start', 'plannedStart'], ['Start (in progress from today)', 'effStart'],
            ['Planned end', 'plannedEnd'], ['Actual start', 'actualStart'],
            ['Should have started', function (r) { return r.lateStart ? 'Yes' : ''; }], ['Past planned finish', function (r) { return r.overdue ? 'Yes' : ''; }]],
-    constraint: [['Constraint ID', 'id'], ['Constraint', 'title'], ['Category', 'category'], ['Priority', 'priority'], ['Owner', 'owner'], ['Owner organisation', 'ownerOrganisation'], ['Trade', 'trade'],
+    constraint: [['Constraint ID', 'id'], ['Constraint', 'title'], ['Category', 'category'], ['Priority', 'priority'], ['Raised by', 'author'], ['Owner', 'owner'], ['Owner organisation', 'ownerOrganisation'], ['Trade', 'trade'],
                  ['Location', 'location'], ['Status', 'status'], ['Created', 'created'], ['Target', 'target'], ['Committed', 'commitment'], ['Completed', 'completion'],
                  ['Overdue days', 'overdueDays'], ['Lag days', 'lagDays'], ['Linked activities', function (r) { return r.activities.join('; '); }]]
   };
   function rowText(r) {
-    return [r.name, r.id, r.title, r.trade, r.organisation, r.location, r.status, r.category, r.owner, (r.activities || []).join(' '), (r.categories || []).join(' '), (r.riskTypes || []).join(' ')]
+    return [r.name, r.id, r.title, r.trade, r.organisation, r.location, r.status, r.category, r.author, r.owner, (r.activities || []).join(' '), (r.categories || []).join(' '), (r.riskTypes || []).join(' ')]
       .filter(Boolean).join(' ').toLowerCase();
   }
   function drawerRows() {
@@ -449,8 +450,9 @@
   }
   /* for project overrides: a list of activities the project's script built itself, each
      { id, name, trade, organisation, location, status, plannedStart, plannedEnd, actualEnd, note, tone }.
-     note is an extra column headed noteHead (tone good / warn / bad colours it). */
-  function openRows(rows, title, sub, opener, noteHead) {
+     note is an extra column headed noteHead (tone good / warn / bad colours it). extra, optional,
+     adds more columns after it: each { h, cell(r) -> { text, cls, title }, csv(r) -> text }. */
+  function openRows(rows, title, sub, opener, noteHead, extra) {
     C.hideTip();
     var cols = [
       { h: 'Activity', cell: function (r) { return nameCell(r.name, actSub(r)); } },
@@ -466,6 +468,14 @@
       cols.push({ h: noteHead, cell: function (r) { return textCell(r.note, r.tone ? 'tone-text-' + r.tone : null); } });
       csv.push([noteHead, 'note']);
     }
+    (extra || []).forEach(function (x) {
+      cols.push({ h: x.h, cell: function (r) {
+        var v = x.cell(r) || {}, td = el('td', v.cls || null, v.text === undefined ? '—' : v.text);
+        if (v.title) td.title = v.title;
+        return td;
+      } });
+      csv.push([x.h, x.csv]);
+    });
     DR = { rows: rows, kind: 'activity', title: title, opener: opener || document.activeElement, cols: cols, csv: csv };
     showDrawer(title, sub);
   }
@@ -1552,6 +1562,84 @@
   /* ========================================================== High-risk page */
   var riskHeatAll = false; /* the heat map shows the 12 trades with the most high-risk activities until expanded */
   var RISK_HEAT_ROWS = 12;
+
+  /* constraints: raised by (author) x owner. Each cell is the open constraints that author raised
+     for that owner, shaded by the count, with the overdue ones (target before today) in red below.
+     The 12 authors and 10 owners with the most open show until expanded; the other owners fold
+     into one column. A cell, row, column or total lists its constraints in the side panel. */
+  var AO_ROWS = 12, AO_COLS = 10, aoAll = false;
+  function renderAuthorOwner(AO, rangeText) {
+    var host = document.getElementById('consAo'), key = document.getElementById('consAoKey'), moreBtn = document.getElementById('consAoMore');
+    if (!host) return;
+    host.innerHTML = ''; key.innerHTML = ''; moreBtn.hidden = true;
+    if (!AO || !AO.hasAuthor) { host.appendChild(el('p', 'empty', 'The constraint feed does not say who raised each constraint.')); setText('consAoDesc', ''); return; }
+    if (!AO.open) { host.appendChild(el('p', 'empty', 'No open constraints in the selected range.')); setText('consAoDesc', ''); return; }
+    var owners = aoAll ? AO.owners : AO.owners.slice(0, AO_COLS), rest = aoAll ? [] : AO.owners.slice(AO_COLS);
+    var shownOwners = owners.map(function (o) { return o.label; });
+    var authors = aoAll ? AO.authors : AO.authors.slice(0, AO_ROWS);
+    var max = 0;
+    authors.forEach(function (a) { owners.forEach(function (o) { var c = a.cells[o.label]; if (c && c.open > max) max = c.open; }); });
+    function ll(spec, title) { spec.type = 'constraints'; spec.pred = 'authorOwner'; return lister(spec, title, 'Open constraints · ' + rangeText); }
+    function cellOf(v, title, spec, shade) {
+      var td = el('td', 'hc ao-c' + (v.open ? '' : ' zero'));
+      if (!v.open) { td.textContent = '\u00b7'; return td; }
+      td.appendChild(el('span', 'ao-n', C.fmtNum(v.open)));
+      if (v.overdue) td.appendChild(el('span', 'ao-od', C.fmtNum(v.overdue) + ' overdue'));
+      if (shade) td.style.background = 'color-mix(in srgb, var(--s-rej) ' + Math.round(10 + 60 * (max ? v.open / max : 0)) + '%, var(--card))';
+      else td.classList.add('tot');
+      td.title = title + ': ' + plural(v.open, 'open constraint') + (v.overdue ? ', ' + C.fmtNum(v.overdue) + ' overdue' : '') + ' \u00b7 click to list them';
+      makePick(td, ll(spec, title), false);
+      return td;
+    }
+    var tbl = el('table', 'heat ao-heat'), thead = el('thead'), hr = el('tr');
+    hr.appendChild(el('th', 'ao-corner', 'Raised by \u2193 \u00b7 Owner \u2192'));
+    owners.forEach(function (o) {
+      var th = el('th', 'ao-own', o.label);
+      makePick(th, ll({ owner: o.label }, 'Owned by ' + o.label), false);
+      th.title = o.label + ': ' + plural(o.open, 'open constraint') + ', ' + C.fmtNum(o.overdue) + ' overdue \u00b7 click to list them';
+      hr.appendChild(th);
+    });
+    if (rest.length) hr.appendChild(el('th', 'ao-own', 'Other owners (' + rest.length + ')'));
+    hr.appendChild(el('th', 'num', 'Open'));
+    thead.appendChild(hr); tbl.appendChild(thead);
+    var tb = el('tbody');
+    authors.forEach(function (a) {
+      var tr = el('tr'), name = el('th', 'ht-trade', a.label);
+      makePick(name, ll({ author: a.label }, 'Raised by ' + a.label), false);
+      name.title = 'Raised by ' + a.label + ': ' + plural(a.open, 'open constraint') + ', ' + C.fmtNum(a.overdue) + ' overdue \u00b7 click to list them';
+      tr.appendChild(name);
+      owners.forEach(function (o) {
+        tr.appendChild(cellOf(a.cells[o.label] || { open: 0, overdue: 0 }, a.label + ' \u2192 ' + o.label, { author: a.label, owner: o.label }, true));
+      });
+      if (rest.length) {
+        var rv = { open: 0, overdue: 0 };
+        rest.forEach(function (o) { var c = a.cells[o.label]; if (c) { rv.open += c.open; rv.overdue += c.overdue; } });
+        tr.appendChild(cellOf(rv, a.label + ' \u2192 other owners', { author: a.label, notOwners: shownOwners }, true));
+      }
+      tr.appendChild(cellOf(a, 'Raised by ' + a.label, { author: a.label }, false));
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    var tf = el('tfoot'), fr = el('tr');
+    fr.appendChild(el('th', null, 'All authors'));
+    owners.forEach(function (o) { fr.appendChild(cellOf(o, 'Owned by ' + o.label, { owner: o.label }, false)); });
+    if (rest.length) {
+      var ro = rest.reduce(function (s, o) { s.open += o.open; s.overdue += o.overdue; return s; }, { open: 0, overdue: 0 });
+      fr.appendChild(cellOf(ro, 'Other owners', { notOwners: shownOwners }, false));
+    }
+    fr.appendChild(cellOf(AO, 'All open constraints', {}, false));
+    tf.appendChild(fr); tbl.appendChild(tf);
+    host.appendChild(tbl);
+    var big = AO.authors.length > AO_ROWS || AO.owners.length > AO_COLS;
+    moreBtn.hidden = !big;
+    moreBtn.textContent = aoAll ? 'Show the top ' + AO_ROWS + ' authors and ' + AO_COLS + ' owners' : 'Show all ' + plural(AO.authors.length, 'author') + ' and ' + plural(AO.owners.length, 'owner');
+    moreBtn.onclick = function () { aoAll = !aoAll; renderAuthorOwner(AO, rangeText); };
+    key.appendChild(el('span', null, '1')); key.appendChild(el('span', 'heat-ramp ao-ramp')); key.appendChild(el('span', null, C.fmtNum(max)));
+    key.appendChild(el('span', null, '\u00b7 open constraints per author and owner; the red line is how many are overdue (target before today).'));
+    setText('consAoDesc', plural(AO.open, 'open constraint') + ', ' + C.fmtNum(AO.overdue) + ' overdue \u00b7 ' + plural(AO.authors.length, 'author') + ' \u00d7 ' + plural(AO.owners.length, 'owner')
+      + (big && !aoAll ? ' \u00b7 the busiest shown' : ''));
+    ensureListBtn('consAoDesc', ll({}, 'Open constraints by author and owner'));
+  }
   function renderRisk(V, S, rangeText) {
     var R = V.risk, UN = V.sets.UN;
     function rl(spec, title, sub) { spec.type = 'risk'; return lister(spec, title, sub || rangeText); }
@@ -2143,6 +2231,7 @@
       [['Completed by target', 's-ok', 'onTime'], ['Completed after target', 's-warning', 'late'], ['Still open', 's-fail', 'open']].forEach(function (k) {
         cwl.appendChild(chip(k[0], cw.reduce(function (a, w) { return a + w[k[2]]; }, 0), k[1]));
       });
+      renderAuthorOwner(CN.authorOwner, rangeText);
       setText('consOverdueDesc', CN.overdueCount ? CN.overdueCount + ' open with a target date before today' + (CN.overdueCount > CN.overdue.length ? ', the ' + CN.overdue.length + ' most overdue shown' : '') : 'Nothing in the range is past its target date');
       ensureListBtn('consOverdueDesc', CN.overdueCount ? lister({ type: 'constraints', pred: 'pastTarget' }, 'Overdue constraints', 'Open (no completion date) with a target before ' + C.fmtDate(V.today)) : null);
       ensureListBtn('consWeeksDesc', CN.total ? lister({ type: 'constraints' }, 'Constraints by target week', rangeText) : null);

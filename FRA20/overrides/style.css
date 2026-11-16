@@ -302,3 +302,6 @@ table.tp-crit td:first-child { font-weight: 600; color: var(--ink); }
 td.pr-c.pr-good { --tp: var(--good); } td.pr-c.pr-bad { --tp: var(--bad); } td.pr-c.pr-warn { --tp: var(--warn); } td.pr-c.pr-all { --tp: var(--brand); }
 .pr-share { --tp: var(--good); }
 @media (prefers-reduced-motion: reduce) { .pr-stat:hover, .pr-q:hover { transform: none !important; } }
+
+/* Energisation drill-through: one column per prerequisite (✓ marked, ✗ not marked, — not on the activity) */
+.drawer-table td.en-pq { text-align: center; font-weight: 600; }
