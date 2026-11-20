@@ -930,3 +930,399 @@ var FRA20Pages = (function () {
   }
   document.addEventListener('dlr:render', function (e) { if (e.detail && e.detail.page === 'lookahead') draw(e.detail.V, e.detail.S); });
 })();
+
+/* FRA20 only. Win tracker page: every commitment (activity x committed end date) scored against
+   its activity's actual end.
+     Achieved      finished on or before the committed end date
+     Failed        finished after it (finished late) or not finished and the date has passed (open)
+     Pending       not finished and the committed end is today or later: not yet due, outside the win rate
+   Win rate = achieved / (achieved + failed). Delay days = actual end - committed end, or for an
+   open failure, data date - committed end (still growing). A failure's variance reason is its
+   activity's recorded reasons (facts.tasks rs, from the activity history), grouped by the
+   data.reasons.categories mapping; none recorded -> data.reasons.noneLabel. An activity with several categories counts
+   under each. The same activity committed for two dates counts twice, as two commitments.
+   It uses the Performance page's slicers (date range on committed end, trade, location,
+   organisation; FRA20Pages switches app.js to that page) and redraws on its dlr:render.
+   Interaction: the tiles, the weekly chart, the delay buckets, the reason rows and the trade table
+   cells open the commitments behind them in the side panel (window.DLR.openRows). */
+(function () {
+  'use strict';
+  var D = JSON.parse(document.getElementById('data').textContent), M = D.metrics;
+  if (!M || !M.facts || !M.facts.commitments) return;
+  var C = window.Charts, A = window.Agg, el = C.el, FX = M.facts, today = FX.today;
+  var panel = FRA20Pages.add('wins', 'Win tracker', '<path d="M5 2.5h6v3.2a3 3 0 0 1-6 0z"/><path d="M5 3.5H3a2 2 0 0 0 2 2.6M11 3.5h2a2 2 0 0 1-2 2.6"/><path d="M8 8.7v2.6"/><path d="M5.5 13.5h5"/>', 'performance');
+  if (!panel) return;
+
+  var DAY = 864e5;
+  function day(iso) { return iso ? iso.slice(0, 10) : null; }
+  function diff(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / DAY); }   /* b - a, in days */
+  function plural(n, one, many) { return C.fmtNum(n) + ' ' + (n === 1 ? one : many); }
+  function pctOf(n, of) { return of ? Math.round(1000 * n / of) / 10 : null; }
+  function pctTxt(p) { return p === null ? '–' : Math.round(p) + '%'; }
+  function wk(a, b) { return C.fmtDate(a, true) + ' – ' + C.fmtDate(b, true); }
+  function act(node, fn, label) {
+    node.classList.add('xp-pick'); node.setAttribute('role', 'button'); node.tabIndex = 0;
+    if (label) node.setAttribute('aria-label', label);
+    node.addEventListener('click', function (e) { e.stopPropagation(); C.hideTip(); fn(node); });
+    node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); C.hideTip(); fn(node); } });
+  }
+  var NONE = (D.data && D.data.reasons && D.data.reasons.noneLabel) || 'No reason recorded';
+  /* a recorded reason's category, as the reasons-by-trade visual maps it (t.cs also carries the
+     model's "Uncategorised" for every history row without a reason, so it is not used here) */
+  var MAP = (D.data && D.data.reasons && D.data.reasons.categories) || {};
+  function categoriesOf(t) {
+    var m = {};
+    (t.rs || []).forEach(function (r) { var c = 'Unmapped'; for (var k in MAP) if (MAP[k].indexOf(r) >= 0) { c = k; break; } m[c] = 1; });
+    var out = Object.keys(m).sort();
+    return out.length ? out : [NONE];
+  }
+  var TARGET = (D.data && D.data.ppc && D.data.ppc.targetPct) || 85;
+  /* win-rate tone: at or above target good, within 15 points of it watch, below that bad */
+  function tone(p) { return p === null ? null : p >= TARGET ? 'good' : p >= TARGET - 15 ? 'warn' : 'bad'; }
+  function toneCls(p) { var T = tone(p); return T === 'good' ? 'tp-good' : T === 'warn' ? 'tp-fair' : T === 'bad' ? 'tp-crit' : 'wt-na'; }
+  var BUCKETS = [{ label: '1–3 days', lo: 1, hi: 3 }, { label: '4–7 days', lo: 4, hi: 7 }, { label: '8–14 days', lo: 8, hi: 14 },
+                 { label: '15–30 days', lo: 15, hi: 30 }, { label: 'Over 30 days', lo: 31, hi: Infinity }];
+  var RES = { win: 'Achieved', late: 'Failed · finished late', open: 'Failed · not finished', pending: 'Pending · not yet due' };
+
+  /* the filtered commitments (Performance slicers) -> one record each, linked to its activity */
+  function recordsOf(V) {
+    var S = V.sets || {}, byGuid = S.byGuid || {}, seen = {}, out = [], unlinked = 0;
+    (S.comms || []).forEach(function (c) {
+      var t = byGuid[c.g];
+      if (!t) { unlinked++; return; }
+      var key = c.g + '|' + c.ce;
+      if (seen[key]) return;
+      seen[key] = 1;
+      var ce = day(c.ce), ae = day(t.ae), r = { c: c, t: t, ce: ce, ae: ae, week: A.mondayOf(ce), delay: 0, early: 0 };
+      if (ae && ae <= ce) { r.res = 'win'; r.early = diff(ae, ce); }
+      else if (ae) { r.res = 'late'; r.delay = diff(ce, ae); }
+      else if (ce < today) { r.res = 'open'; r.delay = diff(ce, today); }
+      else r.res = 'pending';
+      r.fail = r.res === 'late' || r.res === 'open';
+      r.cats = r.fail ? categoriesOf(t) : [];
+      out.push(r);
+    });
+    return { rows: out, unlinked: unlinked };
+  }
+  function stats(rows) {
+    var s = { n: rows.length, win: 0, late: 0, open: 0, pending: 0, delay: 0, maxDelay: 0 };
+    rows.forEach(function (r) { s[r.res]++; s.delay += r.delay; if (r.delay > s.maxDelay) s.maxDelay = r.delay; });
+    s.fail = s.late + s.open; s.due = s.win + s.fail;
+    s.pct = pctOf(s.win, s.due);
+    s.avgDelay = s.fail ? Math.round(10 * s.delay / s.fail) / 10 : null;
+    return s;
+  }
+  function note(r) {
+    return r.res === 'win' ? (r.early ? 'Achieved, ' + r.early + ' d early' : 'Achieved on the date')
+      : r.res === 'late' ? 'Finished ' + r.delay + ' d late'
+      : r.res === 'open' ? 'Not finished, ' + r.delay + ' d overdue' : 'Due in ' + diff(today, r.ce) + ' d';
+  }
+  /* drill-through: failures first (longest delay first), then pending, then achieved */
+  var ORDER = { open: 0, late: 1, pending: 2, win: 3 };
+  function list(sel, title, opener) {
+    var rows = sel.slice().sort(function (a, b) { return ORDER[a.res] - ORDER[b.res] || b.delay - a.delay || a.ce.localeCompare(b.ce); }).map(function (r) {
+      var t = r.t;
+      return { id: t.id, name: t.n, trade: t.tr, organisation: t.o, location: t.l, status: t.st, plannedStart: t.ps, plannedEnd: t.pe,
+               actualEnd: t.ae, note: note(r), tone: r.res === 'win' ? 'good' : r.fail ? 'bad' : null,
+               ce: r.ce, delay: r.delay, why: r.fail ? (t.rs && t.rs.length ? t.rs.join('; ') : NONE) : '', cats: r.cats.join('; ') };
+    });
+    var s = stats(sel);
+    window.DLR.openRows(rows, title, plural(s.n, 'commitment', 'commitments') + ' · ' + s.win + ' achieved · ' + s.fail + ' failed'
+      + (s.pending ? ' · ' + s.pending + ' pending' : '') + (s.due ? ' · win rate ' + pctTxt(s.pct) : '') + (s.fail ? ' · ' + C.fmtNum(s.delay) + ' delay days' : ''),
+      opener, 'Result', [
+        { h: 'Committed end', cell: function (r) { return { text: C.fmtDate(r.ce, true), cls: 'num' }; }, csv: function (r) { return r.ce; } },
+        { h: 'Delay (days)', cell: function (r) { return { text: r.delay ? String(r.delay) : '—', cls: 'num' + (r.delay ? ' tone-text-bad' : '') }; }, csv: function (r) { return r.delay || 0; } },
+        { h: 'Reason category', cell: function (r) { return { text: r.cats || '—' }; }, csv: function (r) { return r.cats; } },
+        { h: 'Reasons for variance', cell: function (r) { return { text: r.why || '—' }; }, csv: function (r) { return r.why; } }
+      ]);
+  }
+
+  var sec = el('section', 'wt-page');
+  var title = el('div', 'section-title');
+  title.appendChild(el('h2', null, 'Win tracker'));
+  var desc = el('span', 'desc');
+  title.appendChild(desc);
+  sec.appendChild(title);
+  var body = el('div');
+  sec.appendChild(body);
+  panel.appendChild(sec);
+
+  /* ---- hero: win rate and the result split; delay card: delay days and their buckets ---- */
+  function top(rows, s) {
+    var wrap = el('div', 'wt-top');
+    var h = el('div', 'card tp-hero ' + toneCls(s.pct));
+    h.appendChild(el('div', 'tp-hero-l', 'Win rate · achieved on or before the committed end date'));
+    var hv = el('div', 'tp-hero-v'); hv.appendChild(el('b', null, pctTxt(s.pct)));
+    hv.appendChild(el('span', null, s.due ? s.win + ' of ' + plural(s.due, 'due commitment', 'due commitments') : 'nothing due yet'));
+    h.appendChild(hv);
+    var g = el('div', 'tp-gauge'), gi = el('i'); gi.style.width = (s.pct || 0) + '%'; g.appendChild(gi); h.appendChild(g);
+    h.appendChild(el('div', 'tp-hero-s', 'Target ' + TARGET + '%'));
+    var st = el('div', 'pr-stats wt-stats');
+    [['win', 'Achieved', 'good'], ['late', 'Failed · finished late', 'bad'], ['open', 'Failed · not finished', 'bad'], ['pending', 'Pending · not yet due', null]].forEach(function (x) {
+      var n = s[x[0]], b = el('div', 'pr-stat' + (x[2] ? ' pr-' + x[2] : ''));
+      var nn = el('div', 'pr-stat-n'); nn.appendChild(el('b', null, C.fmtNum(n)));
+      if (x[0] !== 'pending') nn.appendChild(el('span', null, pctTxt(pctOf(n, s.due))));
+      b.appendChild(nn); b.appendChild(el('span', 'pr-stat-l', x[1]));
+      if (n) act(b, function (node) { list(rows.filter(function (r) { return r.res === x[0]; }), RES[x[0]], node); }, x[1] + ': list them');
+      else b.classList.add('en-zero');
+      st.appendChild(b);
+    });
+    h.appendChild(st);
+    wrap.appendChild(h);
+
+    var d = el('div', 'card wt-delay');
+    d.appendChild(el('div', 'tp-hero-l', 'Delay on failed commitments'));
+    var dv = el('div', 'wt-delay-v');
+    [[C.fmtNum(s.delay), 'delay days in total'], [s.avgDelay === null ? '–' : String(s.avgDelay), 'days on average'], [C.fmtNum(s.maxDelay), 'days at most']].forEach(function (x) {
+      var b = el('div'); b.appendChild(el('b', null, x[0])); b.appendChild(el('span', null, x[1])); dv.appendChild(b);
+    });
+    d.appendChild(dv);
+    var fails = rows.filter(function (r) { return r.fail; }), bmax = 0;
+    var bk = BUCKETS.map(function (B) { var sel = fails.filter(function (r) { return r.delay >= B.lo && r.delay <= B.hi; }); if (sel.length > bmax) bmax = sel.length; return { B: B, sel: sel }; });
+    var bars = el('div', 'wt-buckets');
+    bk.forEach(function (x) {
+      var row = el('div', 'wt-bucket' + (x.sel.length ? '' : ' en-zero'));
+      row.appendChild(el('span', 'wt-bucket-l', x.B.label));
+      var tr = el('span', 'wt-track'), fi = el('i'); fi.style.width = (bmax ? 100 * x.sel.length / bmax : 0) + '%'; tr.appendChild(fi); row.appendChild(tr);
+      row.appendChild(el('span', 'wt-bucket-n', C.fmtNum(x.sel.length)));
+      if (x.sel.length) act(row, function (node) { list(x.sel, 'Failed commitments · delay ' + x.B.label, node); }, 'Delay ' + x.B.label + ': list them');
+      bars.appendChild(row);
+    });
+    d.appendChild(bars);
+    if (!fails.length) d.appendChild(el('div', 'xp-empty', 'No failed commitments in this range.'));
+    wrap.appendChild(d);
+    return wrap;
+  }
+
+  /* ---- weekly trend: achieved / failed per committed week, win rate line ---- */
+  var spec = null, svg = null, lastW = 0;
+  function weekly(rows) {
+    var card = el('div', 'card wt-card');
+    var hd = el('div', 'card-head'); hd.appendChild(el('h2', null, 'Win rate by committed week'));
+    hd.appendChild(el('span', 'desc', 'Achieved and failed commitments per week of their committed end date; pending ones are left out'));
+    card.appendChild(hd);
+    var weeks = {}, keys = [];
+    rows.forEach(function (r) { if (!weeks[r.week]) { weeks[r.week] = []; keys.push(r.week); } weeks[r.week].push(r); });
+    keys.sort();
+    var ws = keys.map(function (k) { return { mon: k, rows: weeks[k], s: stats(weeks[k]) }; });
+    function lbl(w) { return 'W' + A.isoWeek(w.mon).split('-')[1]; }
+    function span(w) { return wk(w.mon, A.addDays(w.mon, 6)); }
+    function picker(w, res, name) {
+      var sel = w.rows.filter(function (r) { return res === 'fail' ? r.fail : res ? r.res === res : r.res !== 'pending'; });
+      return sel.length ? function (n) { list(sel, name + ', ' + lbl(w) + ' (' + span(w) + ')', n); } : null;
+    }
+    spec = {
+      labels: ws.map(lbl), axisTitles: ['Commitments', 'Win rate'], showLabels: true, target: TARGET,
+      emptyText: 'No commitments end in the selected range.',
+      columns: [
+        { name: 'Achieved', cls: 'kept', values: ws.map(function (w) { return w.s.win; }),
+          tips: ws.map(function (w) { return lbl(w) + ' (' + span(w) + '): ' + w.s.win + ' achieved of ' + w.s.due + ' due'; }),
+          picks: ws.map(function (w) { return picker(w, 'win', 'Achieved commitments'); }) },
+        { name: 'Failed', cls: 'missed', values: ws.map(function (w) { return w.s.fail; }),
+          tips: ws.map(function (w) { return lbl(w) + ' (' + span(w) + '): ' + w.s.fail + ' failed · ' + C.fmtNum(w.s.delay) + ' delay days' + (w.s.avgDelay !== null ? ', avg ' + w.s.avgDelay + ' d' : ''); }),
+          picks: ws.map(function (w) { return picker(w, 'fail', 'Failed commitments'); }) }
+      ],
+      line: { name: 'Win rate', cls: 'ppc', values: ws.map(function (w) { return w.s.pct; }),
+              tips: ws.map(function (w) { return 'Win rate ' + lbl(w) + ': ' + pctTxt(w.s.pct) + ' (' + w.s.win + ' of ' + w.s.due + ')' + (w.s.pending ? ' · ' + w.s.pending + ' pending' : ''); }),
+              picks: ws.map(function (w) { return picker(w, null, 'Due commitments'); }) }
+    };
+    svg = C.svgEl('svg', { 'class': 'chart', role: 'img', 'aria-label': 'Achieved and failed commitments per committed week, with the win rate' });
+    card.appendChild(svg);
+    var key = el('div', 'legend');
+    [['sq kept', 'Achieved (on or before the committed end date)'], ['sq missed', 'Failed'], ['', 'Win rate'], ['target', 'Target ' + TARGET + '%']].forEach(function (k) {
+      var s = el('span', 'item'); s.appendChild(el('span', 'key ' + k[0])); s.appendChild(document.createTextNode(k[1])); key.appendChild(s);
+    });
+    card.appendChild(key);
+    return card;
+  }
+  /* drawn at the svg's real width; the page starts hidden, so it redraws when its width changes */
+  function drawChart() { if (spec && svg && svg.isConnected) { lastW = Math.round(svg.getBoundingClientRect().width); C.comboChart(svg, spec); } }
+  if (window.ResizeObserver) new ResizeObserver(function () {
+    var w = svg ? Math.round(svg.getBoundingClientRect().width) : 0;
+    if (w && Math.abs(w - lastW) >= 8) requestAnimationFrame(drawChart);
+  }).observe(panel);
+
+  /* a count cell of the tables: a number that lists the commitments behind it */
+  function cell(tr, n, sel, cls, title) {
+    var td = el('td', 'tp-kpi pr-c ' + (n ? cls : 'tp-na'));
+    td.appendChild(el('span', 'tp-pct', n ? C.fmtNum(n) : '·'));
+    if (n) act(td, function (node) { list(sel, title, node); }, title + ': list them');
+    tr.appendChild(td);
+  }
+  function minibar(cls, share, text) {
+    var td = el('td', 'tp-score'), sb = el('div', 'tp-scorebar ' + cls), mini = el('span', 'tp-mini'), gi = el('i');
+    gi.style.width = share + '%'; mini.appendChild(gi);
+    sb.appendChild(mini); sb.appendChild(el('span', 'tp-n', text)); td.appendChild(sb);
+    return td;
+  }
+  function table(cols) {
+    var wrap = el('div', 'table-wrap'), tbl = el('table', 'tp-table wt-table'), thead = el('thead'), hr = el('tr'), tbody = el('tbody');
+    cols.forEach(function (h) { hr.appendChild(el('th', h[1] ? 'tp-kpi-h' : null, h[0])); });
+    thead.appendChild(hr); tbl.appendChild(thead); tbl.appendChild(tbody); wrap.appendChild(tbl);
+    return { wrap: wrap, tbody: tbody };
+  }
+
+  /* ---- variance analytics: why commitments failed and how many delay days each reason cost.
+     One row per reason category, ranked by failures or by delay days (the toggle); the bar splits
+     its failures into finished late and not finished. Failures with no recorded reason are kept
+     out of the ranking (they would flatten every other bar) and shown as a note below it. ---- */
+  var rankBy = 'fail';
+  function variance(rows) {
+    var card = el('div', 'card tp-card wt-var');
+    var hd = el('div', 'card-head tp-head'); hd.appendChild(el('h2', null, 'Why commitments failed'));
+    var seg = el('div', 'xp-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Rank reasons by');
+    hd.appendChild(seg);
+    card.appendChild(hd);
+    var lead = el('p', 'wt-lead'); card.appendChild(lead);
+    var listBox = el('div', 'wt-rlist'); card.appendChild(listBox);
+    var foot = el('div'); card.appendChild(foot);
+
+    var fails = rows.filter(function (r) { return r.fail; }), by = {};
+    fails.forEach(function (r) { r.cats.forEach(function (c) { (by[c] = by[c] || []).push(r); }); });
+    var none = by[NONE] ? { label: NONE, rows: by[NONE], s: stats(by[NONE]) } : null;
+    var groups = Object.keys(by).filter(function (k) { return k !== NONE; }).map(function (k) { return { label: k, rows: by[k], s: stats(by[k]) }; });
+    var withReason = fails.length - (none ? none.s.fail : 0);
+
+    if (!fails.length) { lead.textContent = 'No failed commitments in this range.'; return card; }
+
+    [['fail', 'Failures'], ['delay', 'Delay days']].forEach(function (o) {
+      var b = el('button', 'xp-seg-b'); b.type = 'button'; b.textContent = o[1];
+      b.addEventListener('click', function () { rankBy = o[0]; fill(); });
+      seg.appendChild(b);
+    });
+
+    function fill() {
+      seg.querySelectorAll('button').forEach(function (b, i) { var on = (i === 0) === (rankBy === 'fail'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      var key = rankBy === 'fail' ? function (g) { return g.s.fail; } : function (g) { return g.s.delay; };
+      groups.sort(function (a, b) { return key(b) - key(a) || b.s.fail - a.s.fail || a.label.localeCompare(b.label); });
+      var max = Math.max.apply(null, [1].concat(groups.map(key)));
+
+      lead.innerHTML = '';
+      if (groups.length) {
+        var g0 = groups[0];
+        lead.appendChild(document.createTextNode(rankBy === 'fail' ? 'Most failures: ' : 'Most delay: '));
+        lead.appendChild(el('b', null, g0.label));
+        lead.appendChild(document.createTextNode(' · ' + plural(g0.s.fail, 'failed commitment', 'failed commitments') + ', ' + C.fmtNum(g0.s.delay) + ' delay days ('
+          + g0.s.avgDelay + ' d each on average). ' + plural(withReason, 'failure has', 'failures have') + ' a recorded reason.'));
+      } else lead.textContent = 'None of the ' + plural(fails.length, 'failed commitment', 'failed commitments') + ' has a recorded reason.';
+
+      listBox.innerHTML = '';
+      if (groups.length) {
+        var head = el('div', 'wt-rrow wt-rhead');
+        ['Reason', rankBy === 'fail' ? 'Failed commitments' : 'Delay days', 'Failed', 'Delay days', 'Avg delay'].forEach(function (h) { head.appendChild(el('span', null, h)); });
+        listBox.appendChild(head);
+      }
+      groups.forEach(function (g) {
+        var s = g.s, row = el('div', 'wt-rrow');
+        row.appendChild(el('span', 'wt-rname', g.label));
+        var bar = el('span', 'wt-rbar'), w = 100 * key(g) / max;
+        var a = el('i', 'wt-late'), b = el('i', 'wt-open');
+        a.style.width = (w * (s.fail ? s.late / s.fail : 0)) + '%'; b.style.width = (w * (s.fail ? s.open / s.fail : 0)) + '%';
+        bar.appendChild(a); bar.appendChild(b);
+        row.appendChild(bar);
+        row.appendChild(el('span', 'wt-rnum', C.fmtNum(s.fail)));
+        row.appendChild(el('span', 'wt-rnum', C.fmtNum(s.delay) + ' d'));
+        row.appendChild(el('span', 'wt-rnum wt-rmuted', s.avgDelay + ' d'));
+        C.attachTooltip(row, g.label + '\n' + s.late + ' finished late · ' + s.open + ' not finished\n' + C.fmtNum(s.delay) + ' delay days · longest ' + s.maxDelay + ' d\nClick to list them');
+        act(row, function (n) { list(g.rows, 'Failed · ' + g.label, n); }, g.label + ': list the failed commitments');
+        listBox.appendChild(row);
+      });
+
+      foot.innerHTML = '';
+      var key2 = el('div', 'en-key');
+      [['wt-late', 'Finished late'], ['wt-open', 'Not finished yet']].forEach(function (k) {
+        var x = el('span'); x.appendChild(el('i', 'wt-sw ' + k[0])); x.appendChild(document.createTextNode(k[1])); key2.appendChild(x);
+      });
+      key2.appendChild(el('span', 'en-key-hint', 'An activity with several reasons counts under each · click a reason to list it'));
+      foot.appendChild(key2);
+      if (none) {
+        var nb = el('div', 'wt-none');
+        nb.appendChild(el('b', null, C.fmtNum(none.s.fail)));
+        nb.appendChild(el('span', null, ' of ' + plural(fails.length, 'failure', 'failures') + ' (' + pctTxt(pctOf(none.s.fail, fails.length)) + ') have no reason recorded · '
+          + C.fmtNum(none.s.delay) + ' delay days. Recording a reason for variance in VisiLean makes them count above.'));
+        act(nb, function (n) { list(none.rows, 'Failed · ' + NONE, n); }, NONE + ': list them');
+        foot.appendChild(nb);
+      }
+    }
+    fill();
+    return card;
+  }
+
+  /* ---- by trade: win rate, failures and their delay, the top reason; worst win rate first ---- */
+  function trades(rows, UN) {
+    var card = el('div', 'card tp-card');
+    var hd = el('div', 'card-head tp-head'); hd.appendChild(el('h2', null, 'Win rate by trade'));
+    var search = el('input', 'xp-search'); search.type = 'search'; search.placeholder = 'Find a trade…'; search.setAttribute('aria-label', 'Find a trade');
+    hd.appendChild(search);
+    card.appendChild(hd);
+    var by = {};
+    rows.forEach(function (r) { var n = r.t.tr || UN; (by[n] = by[n] || []).push(r); });
+    var groups = Object.keys(by).map(function (n) {
+      var g = { label: n, rows: by[n], s: stats(by[n]) }, cats = {};
+      g.rows.forEach(function (r) { r.cats.forEach(function (c) { cats[c] = (cats[c] || 0) + 1; }); });
+      g.top = Object.keys(cats).sort(function (a, b) { return (a === NONE) - (b === NONE) || cats[b] - cats[a]; })[0] || null;
+      g.topN = g.top ? cats[g.top] : 0;
+      return g;
+    }).sort(function (a, b) {
+      var x = a.s.pct === null ? 101 : a.s.pct, y = b.s.pct === null ? 101 : b.s.pct;
+      return x - y || b.s.fail - a.s.fail || a.label.localeCompare(b.label);
+    });
+    var T = table([['Trade'], ['Win rate'], ['Due', 1], ['Achieved', 1], ['Failed', 1], ['Pending', 1], ['Delay days', 1], ['Avg delay', 1], ['Top reason for variance']]);
+    card.appendChild(T.wrap);
+    var empty = el('div', 'xp-empty', 'No trade matches.'); card.appendChild(empty);
+    function fill() {
+      var q = search.value.trim().toLowerCase(), shown = groups.filter(function (g) { return !q || g.label.toLowerCase().indexOf(q) >= 0; });
+      T.tbody.innerHTML = '';
+      shown.forEach(function (g) {
+        var s = g.s, tr = el('tr'), th = el('th', 'tp-trade');
+        th.appendChild(el('div', null, g.label));
+        th.appendChild(el('div', 'tp-trade-sub', plural(s.n, 'commitment', 'commitments')));
+        act(th, function (n) { list(g.rows, g.label, n); }, g.label + ': list its commitments');
+        tr.appendChild(th);
+        var sc = el('td', 'tp-score'), sw = el('div', 'tp-scorebar ' + toneCls(s.pct));
+        sw.appendChild(el('span', 'tp-pill', pctTxt(s.pct)));
+        var mini = el('span', 'tp-mini'), gi = el('i'); gi.style.width = (s.pct || 0) + '%'; mini.appendChild(gi); sw.appendChild(mini);
+        sc.appendChild(sw); tr.appendChild(sc);
+        cell(tr, s.due, g.rows.filter(function (r) { return r.res !== 'pending'; }), 'pr-all', g.label + ' · due');
+        cell(tr, s.win, g.rows.filter(function (r) { return r.res === 'win'; }), 'pr-good', g.label + ' · achieved');
+        cell(tr, s.fail, g.rows.filter(function (r) { return r.fail; }), 'pr-bad', g.label + ' · failed');
+        cell(tr, s.pending, g.rows.filter(function (r) { return r.res === 'pending'; }), 'pr-all', g.label + ' · pending');
+        tr.appendChild(el('td', 'tp-kpi' + (s.delay ? ' tone-text-bad' : ''), s.delay ? C.fmtNum(s.delay) + ' d' : '–'));
+        tr.appendChild(el('td', 'tp-kpi', s.avgDelay === null ? '–' : s.avgDelay + ' d'));
+        var rs = el('td', 'wt-reason');
+        if (g.top) {
+          rs.appendChild(el('span', null, g.top));
+          rs.appendChild(el('span', 'tp-n', ' · ' + g.topN + ' of ' + s.fail));
+          var sel = g.rows.filter(function (r) { return r.cats.indexOf(g.top) >= 0; });
+          act(rs, function (n) { list(sel, g.label + ' · ' + g.top, n); }, g.label + ' · ' + g.top + ': list them');
+        } else rs.textContent = '–';
+        tr.appendChild(rs);
+        T.tbody.appendChild(tr);
+      });
+      empty.hidden = !!shown.length;
+    }
+    search.addEventListener('input', fill);
+    fill();
+    return card;
+  }
+
+  function draw(V, S) {
+    var R = recordsOf(V), rows = R.rows, s = stats(rows), UN = (V.sets && V.sets.UN) || 'Unassigned';
+    var ces = rows.map(function (r) { return r.ce; }).sort();
+    var from = S.from || ces[0], to = S.to || ces[ces.length - 1];
+    desc.textContent = 'Commitments ending ' + (from && to ? wk(from, to) : 'in the range') + ' · achieved = finished on or before the committed end date · Performance filters · status at '
+      + C.fmtDate(today, true) + (R.unlinked ? ' · ' + plural(R.unlinked, 'commitment', 'commitments') + ' without a matching activity not shown' : '');
+    body.innerHTML = '';
+    body.appendChild(top(rows, s));
+    body.appendChild(weekly(rows));
+    body.appendChild(variance(rows));
+    body.appendChild(trades(rows, UN));
+    requestAnimationFrame(drawChart);
+  }
+  document.addEventListener('dlr:render', function (e) { if (e.detail && e.detail.page === 'performance') draw(e.detail.V, e.detail.S); });
+  /* app.js's first render can fire before this script runs, and opening the tab from the
+     Performance page renders nothing new: draw once now with the Performance page's defaults
+     (app.js: the trend window, no other filter). Its next dlr:render replaces this. */
+  var S0 = { from: FX.trend.from, to: FX.trend.to, org: null, trade: null, loc: null, page: 'performance' };
+  draw(A.run(FX, S0, D.data), S0);
+})();
