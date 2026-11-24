@@ -1326,3 +1326,431 @@ var FRA20Pages = (function () {
   var S0 = { from: FX.trend.from, to: FX.trend.to, org: null, trade: null, loc: null, page: 'performance' };
   draw(A.run(FX, S0, D.data), S0);
 })();
+
+/* FRA20 only. Meeting readiness page: is the look-ahead ready for the coordination meeting? It
+   takes the look-ahead activities planned to start in the range (Agg's lookahead rows that start
+   in it, carried-over starts included; complete work is left out) and checks four things on each:
+     Workforce      a planned workforce is set (totalPlannedWorkers above 0; extra_calc.py,
+                    metrics.workforce.n holds the count per activity guid)
+     Prerequisite   at least one prerequisite is selected (facts.tasks pq)
+     Constraint     no open constraint (no completion date) is linked to it
+     High risk      the "High Risk Activity" custom field is filled in, Yes or No (extra_calc.py,
+                    metrics.highRiskField: guid -> value; without it, only the Yes ones in
+                    facts.tasks hr are known)
+   Meeting ready = all four. It uses the Look-ahead page's slicers (date range, trade, location,
+   organisation; FRA20Pages switches app.js to that page) and adds a 2 / 4 / 8 week switch, which
+   drives the Look-ahead page's own range buttons (a 2 weeks button is added there too).
+   Interaction: every tile, check bar, chart column, heat map cell and table cell opens the
+   activities behind it in the side panel (window.DLR.openRows), with their workforce,
+   prerequisites and open constraints. */
+(function () {
+  'use strict';
+  var D = JSON.parse(document.getElementById('data').textContent), M = D.metrics;
+  if (!M || !M.facts) return;
+  var C = window.Charts, A = window.Agg, el = C.el, FX = M.facts, today = FX.today;
+  var W = M.workforce || {}, WF = W.n || {};
+  if (!W.n) (W.guids || []).forEach(function (g) { WF[g] = true; });   /* an older payload: only which ones */
+  var HRF = M.highRiskField;
+  if (!HRF) { HRF = {}; (FX.tasks || []).forEach(function (t) { if (t.hr) HRF[t.g] = 'Yes'; }); }   /* an older payload: the Yes ones */
+  var panel = FRA20Pages.add('readiness', 'Meeting readiness',
+    '<rect x="2.5" y="3" width="11" height="10.5" rx="1.6"/><path d="M2.5 6.5h11M5.5 1.8v2.4M10.5 1.8v2.4"/><path d="m5.6 10 1.7 1.6 3.2-3.2"/>', 'lookahead');
+  if (!panel) return;
+
+  /* the Look-ahead page's range buttons: add 2 weeks (app.js delegates #laSpan clicks) */
+  var laSpan = document.getElementById('laSpan');
+  if (laSpan && !laSpan.querySelector('[data-weeks="2"]')) {
+    var b2 = el('button', null, '2 weeks'); b2.type = 'button'; b2.setAttribute('data-weeks', '2'); b2.setAttribute('aria-pressed', 'false');
+    laSpan.insertBefore(b2, laSpan.firstChild);
+  }
+  var SPANS = [2, 4, 8];
+
+  function wk(a, b) { return C.fmtDate(a, true) + ' – ' + C.fmtDate(b, true); }
+  function plural(n, one, many) { return C.fmtNum(n) + ' ' + (n === 1 ? one : many); }
+  function pctOf(n, of) { return of ? Math.round(100 * n / of) : null; }
+  function pctTxt(p) { return p === null ? '–' : p + '%'; }
+  function wlabel(mon) { return 'W' + A.isoWeek(mon).split('-')[1]; }
+  function act(node, fn, label) {
+    node.classList.add('xp-pick'); node.setAttribute('role', 'button'); node.tabIndex = 0;
+    if (label) node.setAttribute('aria-label', label);
+    node.addEventListener('click', function (e) { e.stopPropagation(); C.hideTip(); fn(node); });
+    node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); C.hideTip(); fn(node); } });
+  }
+  /* readiness tone: 80% and up good, 50% and up fair, below that critical */
+  function toneCls(p) { return p === null ? 'wt-na' : p >= 80 ? 'tp-good' : p >= 50 ? 'tp-fair' : 'tp-crit'; }
+
+  /* the checks; ok(r) = the check is met */
+  var CHECKS = [
+    { key: 'wf', label: 'Planned workforce', yes: 'Workforce assigned', no: 'No planned workforce', ok: function (r) { return r.wf; } },
+    { key: 'pq', label: 'Prerequisites', yes: 'Prerequisite assigned', no: 'No prerequisite', ok: function (r) { return r.pq; } },
+    { key: 'con', label: 'Open constraints', yes: 'No open constraint', no: 'Open constraint linked', ok: function (r) { return !r.con; } },
+    { key: 'hr', label: 'High Risk Activity field', yes: 'High risk selected', no: 'High risk not selected', ok: function (r) { return r.hrs; } }
+  ];
+  var NC = CHECKS.length;
+  /* the heat map's measures: share of the activities meeting it */
+  var MEASURES = [{ key: 'ready', label: 'Meeting ready', ok: function (r) { return r.ready; } }].concat(CHECKS.map(function (k) {
+    return { key: k.key, label: k.key === 'con' ? 'Constraint free' : k.yes, ok: k.ok };
+  }));
+
+  function rowsOf(L) {
+    return (L.rows || []).filter(function (r) { return r.starts; }).map(function (r) {
+      var t = r.t, n = WF[t.g], x = { t: t, ps: r.es, carried: !!r.lateStart, week: A.mondayOf(r.es), oc: r.open || [],
+        wn: n, wf: !!n, pq: !!(t.pq && t.pq.length), hrv: HRF[t.g] || '' };
+      x.con = !!x.oc.length;
+      x.hrs = !!x.hrv;
+      x.hry = /^y/i.test(x.hrv);
+      x.met = CHECKS.filter(function (k) { return k.ok(x); }).length;
+      x.ready = x.met === NC;
+      return x;
+    });
+  }
+  function stats(rows) {
+    var s = { n: rows.length, ready: 0, wf: 0, pq: 0, con: 0, cons: 0, hr: 0, hry: 0 };
+    rows.forEach(function (r) {
+      if (r.ready) s.ready++; if (r.wf) s.wf++; if (r.pq) s.pq++; if (r.con) { s.con++; s.cons += r.oc.length; }
+      if (r.hrs) s.hr++; if (r.hry) s.hry++;
+    });
+    s.pct = pctOf(s.ready, s.n);
+    return s;
+  }
+  /* short: the Workforce, Prerequisites, Open constraints and High risk columns carry the detail */
+  function note(r) { return r.ready ? 'Ready' : (NC - r.met) + ' of ' + NC + ' missing'; }
+  function hrTxt(r) { return r.hrs ? r.hrv + (r.hry && r.t.hr ? ' · ' + r.t.hr.join(', ') : '') : 'Not selected'; }
+  function consTxt(r) { return r.oc.map(function (c) { return c.t || c.c || 'Untitled'; }).join('; '); }
+
+  /* drill-through: least ready first, then by planned start */
+  function list(sel, title, opener) {
+    var rows = sel.slice().sort(function (a, b) { return a.met - b.met || String(a.ps).localeCompare(String(b.ps)) || String(a.t.n).localeCompare(String(b.t.n)); }).map(function (r) {
+      var t = r.t;
+      return { id: t.id, name: t.n, trade: t.tr, organisation: t.o, location: t.l, status: t.st, plannedStart: t.ps, plannedEnd: t.pe,
+               actualEnd: t.ae, note: note(r), tone: r.ready ? 'good' : r.met === NC - 1 ? 'warn' : 'bad', r: r };
+    });
+    var s = stats(sel);
+    window.DLR.openRows(rows, title, plural(s.n, 'activity', 'activities') + ' · ' + s.ready + ' meeting ready (' + pctTxt(s.pct) + ') · '
+      + s.wf + ' with workforce · ' + s.pq + ' with a prerequisite · ' + s.con + ' with an open constraint · ' + s.hr + ' with high risk selected', opener, 'Readiness', [
+        { h: 'Workforce', cell: function (x) { var r = x.r; return { text: r.wf ? (r.wn === true ? 'Yes' : C.fmtNum(r.wn)) : '—', cls: 'num' + (r.wf ? '' : ' tone-text-bad') }; },
+          csv: function (x) { return x.r.wf ? (x.r.wn === true ? 'Yes' : x.r.wn) : 0; } },
+        { h: 'Prerequisites', cell: function (x) { var p = x.r.t.pq || []; return { text: p.length ? p.join(', ') : 'None selected', cls: p.length ? null : 'tone-text-bad' }; },
+          csv: function (x) { return (x.r.t.pq || []).join('; '); } },
+        { h: 'Open constraints', cell: function (x) { return { text: x.r.con ? consTxt(x.r) : '—', cls: x.r.con ? 'tone-text-warn' : null }; },
+          csv: function (x) { return consTxt(x.r); } },
+        { h: 'High risk', cell: function (x) { return { text: hrTxt(x.r), cls: x.r.hrs ? (x.r.hry ? 'tone-text-warn' : null) : 'tone-text-bad' }; },
+          csv: function (x) { return x.r.hrs ? hrTxt(x.r) : ''; } }
+      ]);
+  }
+
+  /* ---- page shell ---- */
+  var sec = el('section', 'mr-page');
+  var title = el('div', 'section-title mr-title');
+  title.appendChild(el('h2', null, 'Meeting readiness'));
+  var desc = el('span', 'desc');
+  title.appendChild(desc);
+  var seg = el('div', 'xp-seg mr-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Look-ahead length');
+  SPANS.forEach(function (n) {
+    var b = el('button', 'xp-seg-b', n + ' weeks'); b.type = 'button'; b.setAttribute('data-weeks', String(n));
+    b.addEventListener('click', function () { var t = laSpan && laSpan.querySelector('[data-weeks="' + n + '"]'); if (t) t.click(); });
+    seg.appendChild(b);
+  });
+  title.appendChild(seg);
+  sec.appendChild(title);
+  var body = el('div');
+  sec.appendChild(body);
+  panel.appendChild(sec);
+  function syncSeg() {
+    seg.querySelectorAll('button').forEach(function (b) {
+      var t = laSpan && laSpan.querySelector('[data-weeks="' + b.getAttribute('data-weeks') + '"]'), on = !!t && t.getAttribute('aria-pressed') === 'true';
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  /* ---- hero: meeting ready share; checks card: each check met / missing, and how many checks each activity meets ---- */
+  function top(rows, s, from, to) {
+    var wrap = el('div', 'wt-top');
+    var h = el('div', 'card tp-hero ' + toneCls(s.pct));
+    h.appendChild(el('div', 'tp-hero-l', 'Meeting ready · workforce planned, prerequisite assigned, no open constraint and High Risk Activity selected'));
+    var hv = el('div', 'tp-hero-v'); hv.appendChild(el('b', null, pctTxt(s.pct)));
+    hv.appendChild(el('span', null, s.ready + ' of ' + plural(s.n, 'activity', 'activities') + ' planned to start' + (from && to ? ' ' + wk(from, to) : '')));
+    h.appendChild(hv);
+    var g = el('div', 'tp-gauge'), gi = el('i'); gi.style.width = (s.pct || 0) + '%'; g.appendChild(gi); h.appendChild(g);
+    h.appendChild(el('div', 'tp-hero-s', 'Good from 80% · fair from 50%'));
+    var st = el('div', 'pr-stats wt-stats');
+    [[s.n, 'Planned to start', null, function () { return true; }],
+     [s.ready, 'Meeting ready', 'good', function (r) { return r.ready; }],
+     [s.n - s.ready, 'Not ready', 'bad', function (r) { return !r.ready; }],
+     [rows.filter(function (r) { return r.carried; }).length, 'Carried over', 'warn', function (r) { return r.carried; }]].forEach(function (x) {
+      var b = el('div', 'pr-stat' + (x[2] ? ' pr-' + x[2] : ''));
+      var nn = el('div', 'pr-stat-n'); nn.appendChild(el('b', null, C.fmtNum(x[0])));
+      if (x[2]) nn.appendChild(el('span', null, pctTxt(pctOf(x[0], s.n))));
+      b.appendChild(nn); b.appendChild(el('span', 'pr-stat-l', x[1]));
+      if (x[0]) act(b, function (node) { list(rows.filter(x[3]), x[1], node); }, x[1] + ': review them');
+      else b.classList.add('en-zero');
+      st.appendChild(b);
+    });
+    h.appendChild(st);
+    wrap.appendChild(h);
+
+    var c = el('div', 'card mr-checks');
+    c.appendChild(el('div', 'tp-hero-l', 'Readiness checks'));
+    CHECKS.forEach(function (k) {
+      var ok = rows.filter(k.ok), no = rows.filter(function (r) { return !k.ok(r); }), p = pctOf(ok.length, rows.length);
+      var row = el('div', 'mr-check');
+      var hd = el('div', 'mr-check-h');
+      hd.appendChild(el('span', 'mr-check-l', k.label));
+      hd.appendChild(el('span', 'mr-check-p', pctTxt(p) + (p === null ? '' : ' ' + k.yes.toLowerCase())));
+      row.appendChild(hd);
+      var bar = el('div', 'mr-bar');
+      var parts = [[ok, 'mr-ok', k.yes], [no, k.key === 'con' ? 'mr-warn' : 'mr-no', k.no]];
+      parts.forEach(function (x) {
+        if (!x[0].length) return;
+        var sg = el('i', x[1]); sg.style.width = (100 * x[0].length / rows.length) + '%';
+        C.attachTooltip(sg, x[2] + ': ' + plural(x[0].length, 'activity', 'activities') + '\nClick to review them');
+        act(sg, function (n) { list(x[0], x[2], n); }, x[2] + ': review them');
+        bar.appendChild(sg);
+      });
+      row.appendChild(bar);
+      var ft = el('div', 'mr-check-f');
+      parts.forEach(function (x) {
+        var a = el('span', x[1] + '-t' + (x[0].length ? '' : ' en-zero'));
+        a.appendChild(el('b', null, C.fmtNum(x[0].length))); a.appendChild(document.createTextNode(' ' + x[2].toLowerCase()));
+        if (x[0].length) act(a, function (n) { list(x[0], x[2], n); }, x[2] + ': review them');
+        ft.appendChild(a);
+      });
+      if (k.key === 'con' && no.length) ft.appendChild(el('span', 'mr-muted', plural(s.cons, 'open constraint', 'open constraints') + ' linked in all'));
+      if (k.key === 'hr' && ok.length) ft.appendChild(el('span', 'mr-muted', s.hry + ' Yes · ' + (s.hr - s.hry) + ' No'));
+      row.appendChild(ft);
+      c.appendChild(row);
+    });
+    var met = el('div', 'mr-met');
+    met.appendChild(el('span', 'mr-met-l', 'Checks met'));
+    for (var m = NC; m >= 0; m--) (function (m) {
+      var sel = rows.filter(function (r) { return r.met === m; }), of = m + ' of ' + NC;
+      var b = el('div', 'mr-met-b ' + (m === NC ? 'mr-met-good' : m === NC - 1 ? 'mr-met-warn' : 'mr-met-bad') + (sel.length ? '' : ' en-zero'));
+      b.appendChild(el('b', null, C.fmtNum(sel.length))); b.appendChild(el('span', null, of));
+      if (sel.length) act(b, function (n) { list(sel, of + ' checks met', n); }, of + ' checks met: review them');
+      met.appendChild(b);
+    })(m);
+    c.appendChild(met);
+    wrap.appendChild(c);
+    return wrap;
+  }
+
+  /* ---- weekly trend: meeting ready / not ready per look-ahead week, with each check's share ---- */
+  var spec = null, svg = null, lastW = 0;
+  function weekly(weeks) {
+    var card = el('div', 'card wt-card');
+    var hd = el('div', 'card-head'); hd.appendChild(el('h2', null, 'Readiness by look-ahead week'));
+    hd.appendChild(el('span', 'desc', 'Activities planned to start each week, meeting ready or not, and the share meeting each check'));
+    card.appendChild(hd);
+    function picker(w, f, name) { var sel = w.rows.filter(f); return sel.length ? function (n) { list(sel, name + ' · ' + wlabel(w.mon) + ' (' + w.sub + ')', n); } : null; }
+    function line(name, cls, f, labels) {
+      return { name: name, cls: cls, noLabels: !labels,
+        values: weeks.map(function (w) { return w.rows.length ? pctOf(w.rows.filter(f).length, w.rows.length) : null; }),
+        tips: weeks.map(function (w) { var k = w.rows.filter(f).length; return name + ' ' + wlabel(w.mon) + ': ' + pctTxt(pctOf(k, w.rows.length)) + ' (' + k + ' of ' + w.rows.length + ')'; }),
+        picks: weeks.map(function (w) { return picker(w, f, name); }) };
+    }
+    spec = {
+      labels: weeks.map(function (w) { return wlabel(w.mon); }), axisTitles: ['Activities', 'Share'], stacked: true, showLabels: true,
+      emptyText: 'No activities planned to start in this range.',
+      columns: [
+        { name: 'Meeting ready', cls: 'kept', values: weeks.map(function (w) { return w.s.ready; }),
+          tips: weeks.map(function (w) { return wlabel(w.mon) + ' (' + w.sub + '): ' + w.s.ready + ' meeting ready of ' + w.s.n; }),
+          picks: weeks.map(function (w) { return picker(w, function (r) { return r.ready; }, 'Meeting ready'); }) },
+        { name: 'Not ready', cls: 'missed', values: weeks.map(function (w) { return w.s.n - w.s.ready; }),
+          tips: weeks.map(function (w) { return wlabel(w.mon) + ' (' + w.sub + '): ' + (w.s.n - w.s.ready) + ' not ready · ' + (w.s.n - w.s.wf) + ' no workforce · '
+            + (w.s.n - w.s.pq) + ' no prerequisite · ' + w.s.con + ' open constraint · ' + (w.s.n - w.s.hr) + ' high risk not selected'; }),
+          picks: weeks.map(function (w) { return picker(w, function (r) { return !r.ready; }, 'Not ready'); }) }
+      ],
+      lines: [line('Meeting ready', 'ppc', function (r) { return r.ready; }, true),
+              line('Workforce assigned', 'mr-wf', function (r) { return r.wf; }),
+              line('Prerequisite assigned', 'mr-pq', function (r) { return r.pq; }),
+              line('Constraint free', 'mr-con', function (r) { return !r.con; }),
+              line('High risk selected', 'mr-hr', function (r) { return r.hrs; })]
+    };
+    svg = C.svgEl('svg', { 'class': 'chart', role: 'img', 'aria-label': 'Meeting ready and not ready activities per look-ahead week, with the share meeting each check' });
+    card.appendChild(svg);
+    var key = el('div', 'legend');
+    [['sq kept', 'Meeting ready'], ['sq missed', 'Not ready'], ['', 'Meeting ready %'], ['mr-wf', 'Workforce assigned %'], ['mr-pq', 'Prerequisite assigned %'], ['mr-con', 'Constraint free %'], ['mr-hr', 'High risk selected %']].forEach(function (k) {
+      var s = el('span', 'item'); s.appendChild(el('span', 'key ' + k[0])); s.appendChild(document.createTextNode(k[1])); key.appendChild(s);
+    });
+    card.appendChild(key);
+    return card;
+  }
+  function drawChart() { if (spec && svg && svg.isConnected) { lastW = Math.round(svg.getBoundingClientRect().width); C.comboChart(svg, spec); } }
+  if (window.ResizeObserver) new ResizeObserver(function () {
+    var w = svg ? Math.round(svg.getBoundingClientRect().width) : 0;
+    if (w && Math.abs(w - lastW) >= 8) requestAnimationFrame(drawChart);
+  }).observe(panel);
+
+  function groupsOf(rows, by, UN) {
+    var m = {};
+    rows.forEach(function (r) { var k = r.t[by] || UN; (m[k] = m[k] || []).push(r); });
+    return Object.keys(m).map(function (k) { return { label: k, rows: m[k], s: stats(m[k]) }; });
+  }
+  function segBtn(box, label, on, fn) {
+    var b = el('button', 'xp-seg-b' + (on ? ' on' : ''), label); b.type = 'button'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.addEventListener('click', fn); box.appendChild(b);
+  }
+  var BY = [['tr', 'Trade', 'trade'], ['o', 'Organisation', 'organisation']];
+
+  /* ---- heat map: trade or organisation x look-ahead week, the share meeting the chosen measure ---- */
+  var heatBy = 'tr', heatM = 'ready', heatAll = false, HEAT_TOP = 15;   /* the 15 least ready rows until expanded */
+  function heatBg(p) {
+    var c = p >= 80 ? 'var(--good)' : p >= 50 ? 'var(--warn)' : 'var(--bad)';
+    var mix = p >= 80 ? 16 + Math.round((p - 80) * 1.2) : p >= 50 ? 24 : 24 + Math.round((50 - p) * 0.8);
+    return 'color-mix(in srgb, ' + c + ' ' + mix + '%, var(--card))';
+  }
+  function heat(rows, weeks, UN) {
+    var card = el('div', 'card tp-card mr-heat');
+    var hd = el('div', 'card-head tp-head'); hd.appendChild(el('h2', null, 'Readiness heat map'));
+    var ctl = el('div', 'mr-ctl');
+    var sBy = el('div', 'xp-seg'); sBy.setAttribute('role', 'group'); sBy.setAttribute('aria-label', 'Rows');
+    var sM = el('div', 'xp-seg'); sM.setAttribute('role', 'group'); sM.setAttribute('aria-label', 'Measure');
+    ctl.appendChild(sBy); ctl.appendChild(sM); hd.appendChild(ctl);
+    card.appendChild(hd);
+    var lead = el('p', 'wt-lead'); card.appendChild(lead);
+    var host = el('div', 'table-wrap'); card.appendChild(host);
+    var key = el('div', 'en-key'); card.appendChild(key);
+    function fill() {
+      sBy.innerHTML = ''; sM.innerHTML = '';
+      BY.forEach(function (x) { segBtn(sBy, x[1], heatBy === x[0], function () { heatBy = x[0]; fill(); }); });
+      MEASURES.forEach(function (x) { segBtn(sM, x.label, heatM === x.key, function () { heatM = x.key; fill(); }); });
+      var ms = MEASURES.filter(function (x) { return x.key === heatM; })[0], who = heatBy === 'tr' ? 'trade' : 'organisation';
+      var gs = groupsOf(rows, heatBy, UN).map(function (g) { g.p = pctOf(g.rows.filter(ms.ok).length, g.rows.length); return g; })
+        .sort(function (a, b) { return a.p - b.p || b.rows.length - a.rows.length || a.label.localeCompare(b.label); });
+      lead.textContent = gs.length ? 'Share of each ' + who + '’s activities planned to start in the week that are ' + ms.label.toLowerCase()
+        + ' · lowest first · ' + plural(gs.filter(function (g) { return g.p < 50; }).length, who + ' is', who + 's are') + ' below 50% over the range.' : '';
+      host.innerHTML = ''; key.innerHTML = '';
+      if (!gs.length) { host.appendChild(el('div', 'xp-empty', 'No activities planned to start in this range.')); return; }
+      var tbl = el('table', 'heat'), thead = el('thead'), hr = el('tr'), tbody = el('tbody');
+      hr.appendChild(el('th', 'tl', heatBy === 'tr' ? 'Trade' : 'Organisation'));
+      weeks.forEach(function (w) { var th = el('th', null, wlabel(w.mon)); th.title = w.sub; hr.appendChild(th); });
+      hr.appendChild(el('th', null, 'All weeks')); hr.appendChild(el('th', null, 'Activities'));
+      thead.appendChild(hr); tbl.appendChild(thead); tbl.appendChild(tbody);
+      function hc(tr, sel, label, extra) {
+        var td = el('td', 'hc' + (extra ? ' ' + extra : ''));
+        if (!sel.length) { td.classList.add('zero'); td.textContent = '·'; tr.appendChild(td); return; }
+        var k = sel.filter(ms.ok).length, p = pctOf(k, sel.length);
+        td.textContent = p + '%'; td.style.background = heatBg(p);
+        if (p < 20) td.classList.add('hot');
+        C.attachTooltip(td, label + '\n' + ms.label + ': ' + k + ' of ' + plural(sel.length, 'activity', 'activities') + ' (' + p + '%)\nClick to review them');
+        act(td, function (n) { list(sel, label, n); }, label + ': review the activities');
+        tr.appendChild(td);
+      }
+      (heatAll ? gs : gs.slice(0, HEAT_TOP)).forEach(function (g) {
+        var tr = el('tr'), th = el('th', 'ht-trade', g.label); th.title = g.label;
+        act(th, function (n) { list(g.rows, g.label, n); }, g.label + ': review its activities');
+        tr.appendChild(th);
+        weeks.forEach(function (w) { hc(tr, g.rows.filter(function (r) { return r.week === w.mon; }), g.label + ' · ' + wlabel(w.mon) + ' (' + w.sub + ')'); });
+        hc(tr, g.rows, g.label + ' · all weeks', 'mr-all');
+        tr.appendChild(el('td', 'hc tot', C.fmtNum(g.rows.length)));
+        tbody.appendChild(tr);
+      });
+      var tf = el('tfoot'), fr = el('tr');
+      fr.appendChild(el('th', null, 'All'));
+      weeks.forEach(function (w) { hc(fr, w.rows, 'All · ' + wlabel(w.mon) + ' (' + w.sub + ')'); });
+      hc(fr, rows, 'All activities planned to start', 'mr-all');
+      fr.appendChild(el('td', 'hc tot', C.fmtNum(rows.length)));
+      tf.appendChild(fr); tbl.appendChild(tf);
+      host.appendChild(tbl);
+      if (gs.length > HEAT_TOP) {
+        var more = el('button', 'btn mr-more', heatAll ? 'Show the ' + HEAT_TOP + ' least ready' : 'Show all ' + gs.length + ' ' + who + 's'); more.type = 'button';
+        more.addEventListener('click', function () { heatAll = !heatAll; fill(); });
+        host.appendChild(more);
+      }
+      [['var(--bad)', 'Below 50%'], ['var(--warn)', '50–79%'], ['var(--good)', '80% and up']].forEach(function (x) {
+        var s = el('span'), sw = el('i', 'wt-sw'); sw.style.background = x[0]; s.appendChild(sw); s.appendChild(document.createTextNode(x[1])); key.appendChild(s);
+      });
+      key.appendChild(el('span', 'en-key-hint', '· = nothing planned to start · click a cell, ' + who + ' or total to review the activities'));
+    }
+    fill();
+    return card;
+  }
+
+  /* ---- breakdown: one row per trade or organisation, the check counts, each clickable; least ready first ---- */
+  var COLS = [
+    { label: 'Planned to start', f: function () { return true; }, tone: 'all' },
+    { label: 'Workforce assigned', f: function (r) { return r.wf; }, tone: 'good' },
+    { label: 'No workforce', f: function (r) { return !r.wf; }, tone: 'bad' },
+    { label: 'Prerequisite assigned', f: function (r) { return r.pq; }, tone: 'good' },
+    { label: 'No prerequisite', f: function (r) { return !r.pq; }, tone: 'bad' },
+    { label: 'Open constraint', f: function (r) { return r.con; }, tone: 'warn' },
+    { label: 'High risk selected', f: function (r) { return r.hrs; }, tone: 'good' },
+    { label: 'High risk not selected', f: function (r) { return !r.hrs; }, tone: 'bad' },
+    { label: 'Meeting ready', f: function (r) { return r.ready; }, tone: 'good' }
+  ];
+  var tblBy = 'tr';
+  function breakdown(rows, UN) {
+    var card = el('div', 'card tp-card');
+    var hd = el('div', 'card-head tp-head');
+    var h2 = el('h2'); hd.appendChild(h2);
+    var sBy = el('div', 'xp-seg mr-by'); sBy.setAttribute('role', 'group'); sBy.setAttribute('aria-label', 'Group by'); hd.appendChild(sBy);
+    var search = el('input', 'xp-search'); search.type = 'search'; hd.appendChild(search);
+    card.appendChild(hd);
+    var wrap = el('div', 'table-wrap'), tbl = el('table', 'tp-table pr-table'), thead = el('thead'), hr = el('tr'), tbody = el('tbody');
+    var th0 = el('th'); hr.appendChild(th0);
+    COLS.forEach(function (k) { hr.appendChild(el('th', 'tp-kpi-h', k.label)); });
+    hr.appendChild(el('th', null, 'Meeting ready share'));
+    thead.appendChild(hr); tbl.appendChild(thead); tbl.appendChild(tbody); wrap.appendChild(tbl); card.appendChild(wrap);
+    var empty = el('div', 'xp-empty'); card.appendChild(empty);
+    var groups;
+    function regroup() {
+      var who = tblBy === 'tr' ? 'trade' : 'organisation';
+      h2.textContent = 'Readiness by ' + who;
+      th0.textContent = tblBy === 'tr' ? 'Trade' : 'Organisation';
+      search.placeholder = 'Find a' + (tblBy === 'tr' ? ' trade' : 'n organisation') + '…'; search.setAttribute('aria-label', search.placeholder);
+      empty.textContent = rows.length ? 'No ' + who + ' matches.' : 'No activities planned to start in this range.';
+      sBy.innerHTML = '';
+      BY.forEach(function (x) { segBtn(sBy, x[1], tblBy === x[0], function () { tblBy = x[0]; regroup(); }); });
+      groups = groupsOf(rows, tblBy, UN).sort(function (a, b) { return a.s.pct - b.s.pct || b.s.n - a.s.n || a.label.localeCompare(b.label); });
+      fill();
+    }
+    function fill() {
+      var q = search.value.trim().toLowerCase(), shown = groups.filter(function (g) { return !q || g.label.toLowerCase().indexOf(q) >= 0; });
+      tbody.innerHTML = '';
+      shown.forEach(function (g) {
+        var tr = el('tr'), th = el('th', 'tp-trade');
+        th.appendChild(el('div', null, g.label));
+        th.appendChild(el('div', 'tp-trade-sub', plural(g.s.n - g.s.ready, 'activity', 'activities') + ' not ready'));
+        act(th, function (n) { list(g.rows, g.label, n); }, g.label + ': review its activities');
+        tr.appendChild(th);
+        COLS.forEach(function (k) {
+          var sel = g.rows.filter(k.f), td = el('td', 'tp-kpi pr-c' + (sel.length ? ' pr-' + k.tone : ' tp-na'));
+          td.appendChild(el('span', 'tp-pct', sel.length ? C.fmtNum(sel.length) : '·'));
+          if (sel.length) act(td, function (n) { list(sel, g.label + ' · ' + k.label, n); }, g.label + ' · ' + k.label + ': review them');
+          tr.appendChild(td);
+        });
+        var sc = el('td', 'tp-score'), sw = el('div', 'tp-scorebar ' + toneCls(g.s.pct));
+        sw.appendChild(el('span', 'tp-pill', pctTxt(g.s.pct)));
+        var mini = el('span', 'tp-mini'), gi = el('i'); gi.style.width = (g.s.pct || 0) + '%'; mini.appendChild(gi); sw.appendChild(mini);
+        sc.appendChild(sw); tr.appendChild(sc);
+        tbody.appendChild(tr);
+      });
+      empty.hidden = !!shown.length;
+    }
+    search.addEventListener('input', fill);
+    regroup();
+    return card;
+  }
+
+  function draw(V, S) {
+    var rows = rowsOf(V.lookahead || {}), s = stats(rows), UN = (V.sets && V.sets.UN) || 'Unassigned';
+    var starts = rows.map(function (r) { return r.ps; }).sort();
+    var from = S.from || starts[0], to = S.to || starts[starts.length - 1];
+    syncSeg();
+    desc.textContent = 'Look-ahead activities planned to start ' + (from && to ? wk(from, to) : 'in the range') + ' · planned workforce, prerequisites, open constraints and the High Risk Activity field · Look-ahead filters (trade, location, organisation) · status at '
+      + C.fmtDate(today, true) + (FX.constraints ? '' : ' · no constraint feed');
+    var weeks = [];
+    if (from && to) for (var w = A.mondayOf(from); w <= to; w = A.addDays(w, 7)) {
+      (function (w) {
+        var a = w < from ? from : w, e = A.addDays(w, 6), b = e > to ? to : e, wr = rows.filter(function (r) { return r.week === w; });
+        weeks.push({ mon: w, sub: wk(a, b), rows: wr, s: stats(wr) });
+      })(w);
+    }
+    body.innerHTML = '';
+    body.appendChild(top(rows, s, from, to));
+    body.appendChild(weekly(weeks));
+    body.appendChild(heat(rows, weeks, UN));
+    body.appendChild(breakdown(rows, UN));
+    requestAnimationFrame(drawChart);
+  }
+  document.addEventListener('dlr:render', function (e) { if (e.detail && e.detail.page === 'lookahead') draw(e.detail.V, e.detail.S); });
+})();

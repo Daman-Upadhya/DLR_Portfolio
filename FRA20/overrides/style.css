@@ -351,3 +351,47 @@ td.wt-reason.xp-pick:hover { background: var(--inset); }
 .wt-none b { font-variant-numeric: tabular-nums; }
 .wt-none.xp-pick:hover { filter: brightness(.98); }
 @media (max-width: 700px) { .wt-rrow { grid-template-columns: minmax(0, 1fr) 60px 70px; } .wt-rrow > :nth-child(2), .wt-rrow > :nth-child(5) { display: none; } }
+
+/* ---------- Meeting readiness page (script.js) ---------- */
+.mr-title { align-items: center; }
+.mr-seg { margin-left: auto; }
+.mr-checks { padding: 16px 20px; border-left: 4px solid var(--brand); display: flex; flex-direction: column; gap: 12px; }
+.mr-check-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.mr-check-l { font-size: 13px; font-weight: 600; color: var(--ink); }
+.mr-check-p { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mr-bar { display: flex; height: 12px; border-radius: 999px; background: var(--inset); overflow: hidden; gap: 2px; }
+.mr-bar i { display: block; height: 100%; }
+.mr-bar i.xp-pick:hover { filter: brightness(.9); }
+.mr-ok { background: var(--good); } .mr-no { background: var(--bad); } .mr-warn { background: var(--warn); }
+.mr-check-f { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 5px; font-size: 12px; color: var(--muted); }
+.mr-check-f > span { border-radius: 6px; padding: 1px 4px; margin: 0 -4px; }
+.mr-check-f > span.xp-pick:hover { background: var(--inset); color: var(--ink); }
+.mr-check-f b { font-variant-numeric: tabular-nums; }
+.mr-ok-t b { color: var(--good); } .mr-no-t b { color: var(--bad); } .mr-warn-t b { color: var(--warn); }
+.mr-check-f .en-zero { opacity: .55; }
+.mr-muted { margin-left: auto; font-style: italic; }
+.mr-met { display: grid; grid-template-columns: auto repeat(5, minmax(0, 1fr)); gap: 8px; align-items: stretch; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.mr-met-l { font-size: 12px; font-weight: 600; color: var(--muted); align-self: center; }
+.mr-met-b { border: 1px solid var(--line-soft); border-top: 3px solid var(--line); border-radius: 10px; padding: 6px 10px; display: flex; flex-direction: column; }
+.mr-met-b b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.2; }
+.mr-met-b span { font-size: 11.5px; color: var(--muted); }
+.mr-met-good { border-top-color: var(--good); } .mr-met-good b { color: var(--good); }
+.mr-met-warn { border-top-color: var(--warn); } .mr-met-warn b { color: var(--warn); }
+.mr-met-bad { border-top-color: var(--bad); } .mr-met-bad b { color: var(--bad); }
+.mr-met-b.en-zero { opacity: .5; }
+.mr-met-b.xp-pick:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+@media (max-width: 600px) { .mr-met { grid-template-columns: repeat(5, minmax(0, 1fr)); } .mr-met-l { grid-column: 1 / -1; } }
+svg.chart .line.mr-wf { stroke: var(--cat-1); } svg.chart .marker.mr-wf { fill: var(--cat-1); }
+svg.chart .line.mr-pq { stroke: var(--cat-7); } svg.chart .marker.mr-pq { fill: var(--cat-7); }
+svg.chart .line.mr-con { stroke: var(--cat-4); } svg.chart .marker.mr-con { fill: var(--cat-4); }
+svg.chart .line.mr-hr { stroke: var(--cat-5); } svg.chart .marker.mr-hr { fill: var(--cat-5); }
+svg.chart .line.mr-wf, svg.chart .line.mr-pq, svg.chart .line.mr-con, svg.chart .line.mr-hr { stroke-dasharray: 5 4; stroke-width: 1.8; }
+.legend .key.mr-wf { border-top: 2px dashed var(--cat-1); } .legend .key.mr-pq { border-top: 2px dashed var(--cat-7); } .legend .key.mr-con { border-top: 2px dashed var(--cat-4); } .legend .key.mr-hr { border-top: 2px dashed var(--cat-5); }
+.mr-ctl { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.mr-by { margin-left: auto; }
+.mr-heat td.hc.mr-all { box-shadow: inset 0 0 0 1px var(--line); font-weight: 700; }
+.mr-heat td.hc.xp-pick:hover { box-shadow: 0 0 0 2px var(--ink); }
+.mr-heat th.ht-trade.xp-pick:hover { color: var(--brand); }
+@media (max-width: 1000px) { .mr-seg, .mr-ctl, .mr-by { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .mr-met-b:hover { transform: none !important; } }
+.mr-more { margin-top: 8px; }

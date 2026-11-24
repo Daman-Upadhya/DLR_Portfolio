@@ -14,7 +14,12 @@ the drill-through can show one column per prerequisite: marked, selected but not
 on the activity.
 
 Trade performance needs one more thing facts.tasks does not carry: which activities have a
-planned workforce (totalPlannedWorkers above 0). Their guids go in metrics.workforce.
+planned workforce (totalPlannedWorkers above 0). Their guids go in metrics.workforce.guids,
+and metrics.workforce.n maps each to its planned workers for the Meeting readiness page.
+
+Meeting readiness also checks whether the "High Risk Activity" custom field is filled in (Yes or
+No); facts.tasks only flags the Yes ones, so metrics.highRiskField maps each unfinished activity's
+guid to the field's value when it has one.
 """
 
 FIELD = "discipline"
@@ -42,5 +47,31 @@ def extend(metrics, model, project, today):
             order.setdefault(m[0], (1, m[1]))
     metrics["energisation"] = {"items": items, "prereqs": sorted(order, key=lambda n: (order[n], n))}
     print("FRA20 energisation: %d activities" % len(items))
-    metrics["workforce"] = {"guids": [t["guid"] for t in model["tasks"] if (t.get("plannedWorkers") or 0) > 0]}
+    staffed = [t for t in model["tasks"] if (t.get("plannedWorkers") or 0) > 0]
+    # guids: Trade performance; n (guid -> planned workers): the Meeting readiness drill-through
+    metrics["workforce"] = {"guids": [t["guid"] for t in staffed], "n": {t["guid"]: t["plannedWorkers"] for t in staffed}}
+    # Meeting readiness: the "High Risk Activity" custom field's value (Yes / No) on each unfinished
+    # activity that has one filled in; finished ones are never in the look-ahead, so they are left out
+    hrf = {}
+    for t in model["tasks"]:
+        if t.get("actualEnd"):
+            continue
+        v = _field(t.get("custom"), HR_FIELD)
+        if v:
+            hrf[t["guid"]] = v
+    metrics["highRiskField"] = hrf
+    print("FRA20 high-risk field filled in on %d unfinished activities" % len(hrf))
     return metrics
+
+
+HR_FIELD = "high risk activity"
+
+
+def _field(custom, name):
+    """The value of the custom field called name (ignoring case and spaces), as text; "" when empty.
+    Matches the whole name, so "High Risk Activity Type" is not "High Risk Activity"."""
+    for k, v in (custom or {}).items():
+        if " ".join(str(k).split()).lower() == name:
+            vals = v if isinstance(v, list) else [v]
+            return ", ".join(" ".join(str(x).split()) for x in vals if x is not None and str(x).strip())
+    return ""

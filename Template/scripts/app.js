@@ -1266,9 +1266,11 @@
     }
     function syncControls() { FILTER_KEYS.forEach(function (k) { pickers[k].set(S[k]); }); dayRange.set(S.from, S.to); }
     document.getElementById('fReset').addEventListener('click', resetFilters);
-    /* the Look-ahead page's 4 / 8 week buttons set its range to that many weeks from next Monday */
-    document.querySelectorAll('#laSpan button').forEach(function (b) {
-      b.addEventListener('click', function () { Object.assign(S, laSpan(Number(b.getAttribute('data-weeks')))); syncControls(); apply(); });
+    /* the Look-ahead page's 4 / 8 week buttons set its range to that many weeks from next Monday
+       (delegated, so a button a project override adds to #laSpan works too) */
+    document.getElementById('laSpan').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-weeks]');
+      if (b) { Object.assign(S, laSpan(Number(b.getAttribute('data-weeks')))); syncControls(); apply(); }
     });
 
     /* ---- page tabs: Performance | Constraints | High-risk (only when the feed flags high-risk activities), each with its own slicers ---- */
