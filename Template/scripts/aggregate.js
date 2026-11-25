@@ -576,7 +576,15 @@
 
     var starting = rows.filter(function (r) { return r.starts; });
     var toStart = starting.filter(function (r) { return r.group === 'ready' || r.group === 'notStarted'; });
+    /* the tiles' split of the look-ahead, on the planned dates: delayed (a planned start or end
+       already passed with no actual date) and, for the rest, planned to start (planned start in
+       the range) and planned to complete (planned end in the range). Delayed never counts as
+       either; an activity both starting and completing in the range counts under both, so
+       total = planStart + completeOnly + delayed. */
+    var planStart = n(function (r) { return !r.carried && r.starts; }), planComplete = n(function (r) { return !r.carried && r.ends; });
+    var planBoth = n(function (r) { return !r.carried && r.starts && r.ends; });
     return {
+      planStart: planStart, planComplete: planComplete, planBoth: planBoth, completeOnly: planComplete - planBoth,
       rows: rows, total: rows.length, starting: starting.length, finishing: n(function (r) { return r.ends; }),
       toStart: toStart.length, ready: toStart.filter(function (r) { return r.group === 'ready'; }).length,
       readyPct: pct(toStart.filter(function (r) { return r.group === 'ready'; }).length, toStart.length),
@@ -733,7 +741,9 @@
         ready: function (r) { return r.starts && r.group === 'ready'; },
         open: function (r) { return r.open.length > 0; }, overdue: function (r) { return r.overdue.length > 0; },
         linked: function (r) { return r.cons.length > 0; }, highRisk: function (r) { return !!r.t.hr; },
-        carried: function (r) { return r.carried; }
+        carried: function (r) { return r.carried; },
+        planStart: function (r) { return !r.carried && r.starts; }, planComplete: function (r) { return !r.carried && r.ends; },
+        delayedStart: function (r) { return r.lateStart; }, delayedEnd: function (r) { return r.lateEnd && !r.lateStart; }
       }[spec.pred || 'all'];
       return ((V.lookahead && V.lookahead.rows) || []).filter(function (r) {
         return LQ(r) && (!spec.group || r.group === spec.group) && (!spec.status || (r.t.st || UN) === spec.status)

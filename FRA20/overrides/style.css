@@ -1,16 +1,16 @@
 /* FRA20 only: focused Look-ahead, Constraints and High-risk pages.
    Each page keeps one hero tile, four supporting tiles (number and label only) and the charts
    that say who or what to act on. Tiles are picked by position, in the order app.js builds them:
-     #laKpis    1 look-ahead activities, 2 planned to start, 3 carried over, 4 ready to start,
-                5 constraint-free starts, 6 held by constraints, 7 constraints overdue
+     #laKpis    1 look-ahead activities, 2 planned to start, 3 planned to complete, 4 delayed,
+                5 ready to start, 6 constraint-free starts, 7 held by constraints, 8 constraints overdue
      #consKpis  1 raised, 2 open, 3 overdue now, 4 overdue %, 5 resolved on time,
                 6 avg. time to resolve, 7 avg. age of open, 8 avg. lag, 9 unlinked, 10 resolved before start
      #riskKpis  1 high-risk activities, 2 in progress, 3 starting in 7 days, 4 should have started,
                 5 past planned finish, 6 multiple risk types */
 
 /* ---------- tiles: duplicates and secondary measures ---------- */
-#laKpis > .kpi:nth-child(5),                    /* constraint-free starts: the inverse of held by constraints */
-#laKpis > .kpi:nth-child(7),                    /* constraints overdue: on the Constraints page */
+#laKpis > .kpi:nth-child(6),                    /* constraint-free starts: the inverse of held by constraints */
+#laKpis > .kpi:nth-child(8),                    /* constraints overdue: on the Constraints page */
 #consKpis > .kpi:nth-child(4),                  /* overdue %: overdue now as a share */
 #consKpis > .kpi:nth-child(6),
 #consKpis > .kpi:nth-child(7),                  /* avg. age of open: the ageing chart */
@@ -19,11 +19,12 @@
 #riskKpis > .kpi:nth-child(6) { display: none; }
 
 /* order: hero first, then the supporting tiles */
-#laKpis > .kpi:nth-child(4)   { order: 1; }
-#laKpis > .kpi:nth-child(2)   { order: 2; }
-#laKpis > .kpi:nth-child(6)   { order: 3; }
+#laKpis > .kpi:nth-child(5)   { order: 1; }   /* hero: ready to start */
+#laKpis > .kpi:nth-child(1)   { order: 2; }   /* then the split of the look-ahead: total, to start, to complete, delayed */
+#laKpis > .kpi:nth-child(2)   { order: 3; }
 #laKpis > .kpi:nth-child(3)   { order: 4; }
-#laKpis > .kpi:nth-child(1)   { order: 5; }
+#laKpis > .kpi:nth-child(4)   { order: 5; }
+#laKpis > .kpi:nth-child(7)   { order: 6; }
 #consKpis > .kpi:nth-child(3) { order: 1; }
 #consKpis > .kpi:nth-child(2) { order: 2; }
 #consKpis > .kpi:nth-child(1) { order: 3; }
@@ -36,18 +37,18 @@
 #riskKpis > .kpi:nth-child(1) { order: 5; }
 
 /* supporting tiles: number and label; the number's colour carries the tone */
-#laKpis > .kpi:not(:nth-child(4)) :is(.kpi-sub, .pill),
+#laKpis > .kpi:not(:nth-child(-n+5)) .kpi-sub, #laKpis > .kpi:not(:nth-child(5)) .pill,
 #consKpis > .kpi:not(:nth-child(3)) :is(.kpi-sub, .pill),
 #riskKpis > .kpi:not(:nth-child(3)) :is(.kpi-sub, .pill) { display: none; }
-#laKpis > .kpi:not(:nth-child(4)),
+#laKpis > .kpi:not(:nth-child(5)),
 #consKpis > .kpi:not(:nth-child(3)),
 #riskKpis > .kpi:not(:nth-child(3)) { justify-content: center; }
-#laKpis > .kpi:not(:nth-child(4)) .kpi-value,
+#laKpis > .kpi:not(:nth-child(5)) .kpi-value,
 #consKpis > .kpi:not(:nth-child(3)) .kpi-value,
 #riskKpis > .kpi:not(:nth-child(3)) .kpi-value { font-size: 30px; }
 
 /* hero */
-#laKpis > .kpi:nth-child(4),
+#laKpis > .kpi:nth-child(5),
 #consKpis > .kpi:nth-child(3),
 #riskKpis > .kpi:nth-child(3) {
   grid-column: 1 / -1; padding: 22px 24px; gap: 6px; justify-content: center;
@@ -57,17 +58,20 @@
 :is(#laKpis, #consKpis, #riskKpis) > .kpi:has(.tone-text-warn) { border-left-color: var(--warn); background: linear-gradient(90deg, var(--warn-bg), var(--card) 70%); }
 :is(#laKpis, #consKpis, #riskKpis) > .kpi:has(.tone-text-good) { border-left-color: var(--good); background: linear-gradient(90deg, var(--good-bg), var(--card) 70%); }
 /* the tone wash is for the hero only */
-#laKpis > .kpi:not(:nth-child(4)),
+#laKpis > .kpi:not(:nth-child(5)),
 #consKpis > .kpi:not(:nth-child(3)),
 #riskKpis > .kpi:not(:nth-child(3)) { border-left: 1px solid var(--line-soft); background: var(--card); }
-:is(#laKpis > .kpi:nth-child(4), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-value { font-size: 64px; letter-spacing: -.035em; }
-:is(#laKpis > .kpi:nth-child(4), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-label { font-size: 13px; color: var(--ink); }
-:is(#laKpis > .kpi:nth-child(4), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-sub   { font-size: 13.5px; }
+:is(#laKpis > .kpi:nth-child(5), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-value { font-size: 64px; letter-spacing: -.035em; }
+:is(#laKpis > .kpi:nth-child(5), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-label { font-size: 13px; color: var(--ink); }
+:is(#laKpis > .kpi:nth-child(5), #consKpis > .kpi:nth-child(3), #riskKpis > .kpi:nth-child(3)) .kpi-sub   { font-size: 13.5px; }
 
 /* wide: hero on the left over two rows, the four supporting tiles 2 x 2 beside it */
 @media (min-width: 1100px) {
-  #laKpis, #consKpis, #riskKpis { grid-template-columns: 1.3fr 1fr 1fr; }
-  #laKpis > .kpi:nth-child(4),
+  #consKpis, #riskKpis { grid-template-columns: 1.3fr 1fr 1fr; }
+  /* look-ahead: hero, then total / to start / to complete, then delayed (two columns) / held */
+  #laKpis { grid-template-columns: 1.3fr 1fr 1fr 1fr; }
+  #laKpis > .kpi:nth-child(4) { grid-column: span 2; }
+  #laKpis > .kpi:nth-child(5),
   #consKpis > .kpi:nth-child(3),
   #riskKpis > .kpi:nth-child(3) { grid-column: auto; grid-row: span 2; }
 }

@@ -299,7 +299,7 @@
   function carriedCell(eff, planned, carried, what) {
     var td = dateCell(eff);
     if (carried) {
-      td.appendChild(el('div', 'cell-note tone-text-bad', 'planned ' + C.fmtDate(planned, true) + ', carried over'));
+      td.appendChild(el('div', 'cell-note tone-text-bad', 'planned ' + C.fmtDate(planned, true) + ', delayed'));
       td.title = 'Planned ' + what + ' ' + C.fmtDate(planned, true) + ' has passed with no actual ' + what + ': carried into the look-ahead';
     }
     return td;
@@ -400,7 +400,7 @@
                ['Events', function (r) { return r.events.join('; '); }]],
     lookahead: [['Activity ID', 'id'], ['Activity', 'name'], ['Type', 'type'], ['Trade', 'trade'], ['Organisation', 'organisation'], ['Location', 'location'],
                 ['Status', 'status'], ['Planned start', 'plannedStart'], ['Planned end', 'plannedEnd'], ['Look-ahead start', 'effStart'], ['Look-ahead end', 'effEnd'],
-                ['Carried over', function (r) { return [r.lateStart ? 'start' : null, r.lateEnd ? 'end' : null].filter(Boolean).join(' and '); }], ['Look-ahead week', function (r) { return weekLabel(r.lookWeek); }],
+                ['Delayed', function (r) { return [r.lateStart ? 'start' : null, r.lateEnd ? 'end' : null].filter(Boolean).join(' and '); }], ['Look-ahead week', function (r) { return weekLabel(r.lookWeek); }],
                 ['Linked constraints', 'consTotal'], ['Open constraints', 'consOpen'], ['Overdue constraints', 'consOverdue'], ['Next constraint target', 'nextTarget'],
                 ['Open constraint titles', function (r) { return r.consTitles.join('; '); }], ['Prerequisites selected', function (r) { return r.prerequisites.join('; '); }], ['High-risk types', function (r) { return r.riskTypes.join('; '); }]],
     risk: [['Activity ID', 'id'], ['Activity', 'name'], ['High-risk types', function (r) { return r.riskTypes.join('; '); }], ['Type', 'type'], ['Trade', 'trade'],
@@ -1422,18 +1422,21 @@
       b.setAttribute('aria-pressed', S.from === sp.from && S.to === sp.to ? 'true' : 'false');
     });
     setText('laDesc', plural(L.weeks.length, 'week') + ', ' + rangeText + ' · open activities (complete and quality-checked left out) whose planned start or planned end falls in the range, each in the week it starts'
-      + (L.carried ? ' · ' + plural(L.carried, 'overdue activity', 'overdue activities') + ' carried into ' + weekLabel(L.weeks.length ? L.weeks[0].week : null) : ''));
+      + (L.carried ? ' · ' + plural(L.carried, 'delayed activity', 'delayed activities') + ' counted in ' + weekLabel(L.weeks.length ? L.weeks[0].week : null) : ''));
 
     /* ---- tiles ---- */
     var k = document.getElementById('laKpis'); k.innerHTML = '';
     [
-      { label: 'Look-ahead activities', value: C.fmtNum(L.total), sub: 'Planned start or end in the range',
+      { label: 'Look-ahead activities', value: C.fmtNum(L.total),
+        sub: C.fmtNum(L.planStart) + ' to start + ' + C.fmtNum(L.completeOnly) + ' to complete only + ' + C.fmtNum(L.carried) + ' delayed',
         pick: L.total ? ll({}, 'Look-ahead activities') : null },
-      { label: 'Planned to start', value: C.fmtNum(L.starting), sub: C.fmtNum(L.finishing) + ' planned to finish in the range',
-        pick: L.starting ? ll({ pred: 'starting' }, 'Activities planned to start') : null },
-      { label: 'Carried over', value: C.fmtNum(L.carried), tone: L.carried ? 'warn' : 'good', toneLabel: L.carried ? 'Overdue' : 'None',
-        sub: C.fmtNum(L.carriedStart) + ' not started, ' + C.fmtNum(L.carriedEnd) + ' not finished, past their planned date' + (L.rollTo ? ' · counted from ' + C.fmtDate(L.rollTo, true) : ''),
-        pick: L.carried ? ll({ pred: 'carried' }, 'Activities carried over', 'Planned date passed with no actual date · counted from ' + C.fmtDate(L.rollTo, true)) : null },
+      { label: 'Planned to start', value: C.fmtNum(L.planStart), sub: 'Planned start date in the range · ' + C.fmtNum(L.planBoth) + ' also complete in it',
+        pick: L.planStart ? ll({ pred: 'planStart' }, 'Planned to start', rangeText + ' · planned start date in the range, not delayed') : null },
+      { label: 'Planned to complete', value: C.fmtNum(L.planComplete), sub: 'Planned end date in the range · ' + C.fmtNum(L.completeOnly) + ' started or starting earlier',
+        pick: L.planComplete ? ll({ pred: 'planComplete' }, 'Planned to complete', rangeText + ' · planned end date in the range, not delayed') : null },
+      { label: 'Delayed', value: C.fmtNum(L.carried), tone: L.carried ? 'bad' : 'good', toneLabel: L.carried ? 'Overdue' : 'None',
+        sub: C.fmtNum(L.carriedStart) + ' planned start passed, not started · ' + C.fmtNum(L.carriedEnd) + ' planned end passed, not complete',
+        pick: L.carried ? ll({ pred: 'carried' }, 'Delayed activities', 'Planned start or end date passed with no actual date' + (L.rollTo ? ' · counted from ' + C.fmtDate(L.rollTo, true) : '')) : null },
       { label: 'Ready to start', value: C.fmtPct(L.readyPct), tone: pctTone(L.readyPct), sub: C.fmtNum(L.ready) + ' of ' + C.fmtNum(L.toStart) + ' not-yet-started starts are Ready',
         pick: L.toStart ? ll({ pred: 'toStart' }, 'Starts not yet started', rangeText + ' · Ready first in the status column') : null },
       { label: 'Constraint-free starts', value: C.fmtPct(L.constraintFreePct), tone: pctTone(L.constraintFreePct), sub: 'Starts with no open constraint',

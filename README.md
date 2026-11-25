@@ -91,10 +91,14 @@ history before its removal on 6 Oct 2026).
   Overdue work is carried over: when an activity that is not complete has a planned start in the
   past and no actual start, or a planned end in the past and no actual end, that date moves to the
   first day of the range (today when the range includes today), so it lands in the first
-  look-ahead week. A "Carried over" tile counts these, and the lists show the original planned date.
+  look-ahead week. These are **Delayed**: a tile counts them (start passed and not started, end
+  passed and not complete), and the lists show the original planned date. The other activities split
+  into **Planned to start** (planned start date in the range) and **Planned to complete** (planned
+  end date in the range); one that does both counts under both, so the total is planned to start +
+  complete only + delayed.
   Its range defaults to the 4 weeks from next Monday; 4 / 8 week buttons switch the length
   (`Template/dashboard_data.json` → `lookahead`). Tiles: look-ahead activities, planned to start,
-  ready to start (share of not-yet-started starts that are Ready), constraint-free starts, held by
+  planned to complete, delayed, ready to start (share of not-yet-started starts that are Ready), constraint-free starts, held by
   open constraints, overdue constraints. Then status by look-ahead week, the status distribution,
   the linked-constraint state of every activity (linked through the constraint's activity guid,
   whatever the Constraints page's filters), starts by trade and week, and the activities held by
